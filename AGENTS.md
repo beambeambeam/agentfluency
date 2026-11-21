@@ -1,3 +1,8 @@
+## Linting and formatting
+
+- After changing code, run `bun run lint --fix`, then `bun run format` from the repository root.
+- Before finishing, run `bun run lint --deny-warnings --format=agent`. Resolve all reported errors and warnings.
+
 ## Agent skills
 
 ### Engineering workflow
