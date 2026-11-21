@@ -19,6 +19,7 @@ local.db-*
 .env
 .env*.local
 .dev.vars*
+!/packages/docker/.env.example
 
 # IDEs and editors
 .vscode/*
