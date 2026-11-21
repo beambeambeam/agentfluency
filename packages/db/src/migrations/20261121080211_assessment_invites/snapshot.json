@@ -1,0 +1,326 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "f0141f46-0f3c-47fb-9245-ad49815078b0",
+  "prevIds": ["15f1ccf4-c334-46ca-87f2-6308c4148a42"],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "assessment_attempt"],
+      "writes": [
+        "s|tbl|public.assessment_attempt",
+        "n|tbl|public.assessment_attempt",
+        "e|tbl|public.assessment_attempt",
+        "n|rel|public.assessment_attempt",
+        "n|type|public.assessment_attempt",
+        "n|rel|public.assessment_attempt_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "assessment_invite"],
+      "writes": [
+        "s|tbl|public.assessment_invite",
+        "n|tbl|public.assessment_invite",
+        "e|tbl|public.assessment_invite",
+        "n|rel|public.assessment_invite",
+        "n|type|public.assessment_invite",
+        "n|rel|public.assessment_invite_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "assessment_attempt"],
+      "writes": [
+        "s|fk|public.assessment_attempt.assessment_attempt_invite_id_assessment_invite_id_fkey",
+        "n|fk|public.assessment_attempt.assessment_attempt_invite_id_assessment_invite_id_fkey",
+        "e|fk|public.assessment_attempt.assessment_attempt_invite_id_assessment_invite_id_fkey",
+        "n|con|public.assessment_attempt.assessment_attempt_invite_id_assessment_invite_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.assessment_attempt",
+        "n|sch|public",
+        "n|tbl|public.assessment_invite",
+        "n|sch|public",
+        "n|col|public.assessment_attempt.invite_id",
+        "n|col|public.assessment_invite.id",
+        "e|uniqueness|public.assessment_invite.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "assessment_attempt"],
+      "writes": [
+        "s|fk|public.assessment_attempt.assessment_attempt_candidate_id_user_id_fkey",
+        "n|fk|public.assessment_attempt.assessment_attempt_candidate_id_user_id_fkey",
+        "e|fk|public.assessment_attempt.assessment_attempt_candidate_id_user_id_fkey",
+        "n|con|public.assessment_attempt.assessment_attempt_candidate_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.assessment_attempt",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.assessment_attempt.candidate_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "assessment_invite"],
+      "writes": [
+        "s|fk|public.assessment_invite.assessment_invite_interviewer_id_user_id_fkey",
+        "n|fk|public.assessment_invite.assessment_invite_interviewer_id_user_id_fkey",
+        "e|fk|public.assessment_invite.assessment_invite_interviewer_id_user_id_fkey",
+        "n|con|public.assessment_invite.assessment_invite_interviewer_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.assessment_invite",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.assessment_invite.interviewer_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "assessment_attempt",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "assessment_invite",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "invite_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "candidate_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "started_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "response",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "submitted_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_invite",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_invite",
+        "name": "interviewer_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_invite",
+        "name": "config",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_invite",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "assessment_attempt_invite_id_assessment_invite_id_fkey",
+        "nameExplicit": false,
+        "columns": ["invite_id"],
+        "schemaTo": "public",
+        "tableTo": "assessment_invite",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "assessment_attempt_candidate_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["candidate_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_invite",
+        "name": "assessment_invite_interviewer_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["interviewer_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_attempt",
+        "name": "assessment_attempt_pkey",
+        "columns": ["invite_id", "candidate_id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "assessment_invite",
+        "name": "assessment_invite_pkey",
+        "columns": ["id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

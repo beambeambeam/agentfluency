@@ -6,7 +6,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 import { getServerEnv } from "@/env.server";
-import { loadAssessment } from "@/features/interview/assessment.server";
+import { requireAssignedAssessment } from "@/features/interview/assessment.server";
 import {
   harnessSchema,
   modelSchema,
@@ -19,6 +19,7 @@ export const MAX_CHAT_MESSAGE_LENGTH = 16_000;
 export const MAX_CHAT_MESSAGES = 51;
 
 const chatInput = z.object({
+  inviteId: z.uuid(),
   harness: harnessSchema,
   model: modelSchema,
   attachmentId: z.string().max(60).optional(),
@@ -69,11 +70,14 @@ export const streamAssistantChat = createServerFn({ method: "POST" })
       });
     }
 
+    const config = await requireAssignedAssessment(
+      data.inviteId,
+      context.session.user.id
+    );
     const apiKey = getServerEnv().OPENAI_API_KEY;
     if (!apiKey && !import.meta.env.DEV) {
       return new Response("The assistant is unavailable.", { status: 503 });
     }
-    const config = await loadAssessment();
     const harness = config.allowHarnessSelection
       ? data.harness
       : config.harness;

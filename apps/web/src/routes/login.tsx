@@ -2,6 +2,7 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { z } from "zod";
 
 import { DitherArtwork } from "@/components/dither-artwork";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import SignUpForm from "@/features/sign-up";
 import { cn } from "@/lib/utils";
 
 const Login = () => {
+  const { invite } = Route.useSearch();
   const [showSignIn, setShowSignIn] = useState(true);
 
   return (
@@ -45,9 +47,15 @@ const Login = () => {
             </Link>
             <div className="mx-auto flex w-full max-w-sm flex-1 items-center py-8">
               {showSignIn ? (
-                <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
+                <SignInForm
+                  invite={invite}
+                  onSwitchToSignUp={() => setShowSignIn(false)}
+                />
               ) : (
-                <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
+                <SignUpForm
+                  invite={invite}
+                  onSwitchToSignIn={() => setShowSignIn(true)}
+                />
               )}
             </div>
           </div>
@@ -58,5 +66,6 @@ const Login = () => {
 };
 
 export const Route = createFileRoute("/login")({
+  validateSearch: z.object({ invite: z.uuid().optional().catch(undefined) }),
   component: Login,
 });

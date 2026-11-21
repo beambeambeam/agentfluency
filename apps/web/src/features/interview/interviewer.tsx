@@ -10,6 +10,8 @@ import {
   Task01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useHydrated } from "@tanstack/react-router";
+import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { HarnessPicker, ModelPicker } from "./assistant-picker";
 import { assessmentSchema, sandboxes } from "./config";
 import type { AssessmentConfig } from "./config";
-import { updateInterview } from "./server";
+import { generateInvitation, updateInterview } from "./server";
 import type { InterviewData } from "./server";
 
 const field =
@@ -28,12 +30,18 @@ const panel = "bg-card space-y-4 rounded-xl border p-5";
 
 export const InterviewerWorkspace = ({
   config,
+  invite,
   submissions,
 }: Extract<InterviewData, { role: "interviewer" }>) => {
   const [draft, setDraft] = useState(config);
   const [tab, setTab] = useState<"flow" | "workspace" | "submissions">("flow");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sharedInvite, setSharedInvite] = useState(invite);
+  const origin = useHydrated() ? window.location.origin : "";
+  const [copyStatus, setCopyStatus] = useState("");
+  const inviteUrl =
+    sharedInvite && origin ? `${origin}/invite/${sharedInvite.id}` : "";
 
   const change = <Key extends keyof AssessmentConfig>(
     key: Key,
@@ -43,7 +51,7 @@ export const InterviewerWorkspace = ({
     setStatus("");
   };
 
-  const save = async () => {
+  const save = async (generate: boolean) => {
     const parsed = assessmentSchema.safeParse(draft);
     if (!parsed.success) {
       const [issue] = parsed.error.issues;
@@ -56,9 +64,19 @@ export const InterviewerWorkspace = ({
     }
     setSaving(true);
     try {
-      await updateInterview({ data: parsed.data });
+      if (generate) {
+        const id = await generateInvitation({ data: parsed.data });
+        setSharedInvite({ id, title: parsed.data.title });
+        setCopyStatus("");
+      } else {
+        await updateInterview({ data: parsed.data });
+      }
       setDraft(parsed.data);
-      setStatus("Saved. The candidate workspace uses this configuration.");
+      setStatus(
+        generate
+          ? "Assessment saved. Your invitation is ready to share."
+          : "Assessment draft saved."
+      );
     } catch {
       setStatus("Could not save. Try again.");
     }
@@ -77,15 +95,71 @@ export const InterviewerWorkspace = ({
           </h1>
           <p className="text-muted-foreground text-sm">{draft.title}</p>
         </div>
-        <Button type="button" disabled={saving} onClick={save}>
-          <HugeiconsIcon icon={FloppyDiskIcon} aria-hidden="true" />
-          {saving ? "Saving…" : "Save assessment"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={saving}
+            onClick={() => save(false)}
+          >
+            <HugeiconsIcon icon={FloppyDiskIcon} aria-hidden="true" />
+            {saving ? "Saving…" : "Save assessment"}
+          </Button>
+          <Button type="button" disabled={saving} onClick={() => save(true)}>
+            Generate invitation
+          </Button>
+        </div>
       </header>
       {status && (
         <output className="bg-card block rounded-md border px-3 py-2 text-sm">
           {status}
         </output>
+      )}
+      {inviteUrl && sharedInvite && (
+        <section
+          className={`${panel} flex flex-wrap items-center gap-5`}
+          aria-label="Share assessment invitation"
+        >
+          <QRCodeSVG
+            value={inviteUrl}
+            size={152}
+            marginSize={4}
+            title={`Invitation QR code for ${sharedInvite.title}`}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <h2 className="font-semibold">Share invitation</h2>
+            <p className="text-muted-foreground text-sm">
+              {sharedInvite.title} · Each candidate gets a separate attempt with
+              this configuration.
+            </p>
+            <label className="block text-sm" htmlFor="assessment-link">
+              Invitation link
+            </label>
+            <Input
+              id="assessment-link"
+              readOnly
+              value={inviteUrl}
+              onFocus={(event) => event.target.select()}
+            />
+            <Button
+              variant="outline"
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(inviteUrl);
+                  setCopyStatus("Link copied.");
+                } catch {
+                  setCopyStatus(
+                    "Select the invitation link above and copy it."
+                  );
+                }
+              }}
+            >
+              Copy link
+            </Button>{" "}
+            <output className="text-sm">{copyStatus}</output>
+          </div>
+        </section>
       )}
       <nav
         aria-label="Assessment builder sections"
@@ -437,10 +511,13 @@ export const InterviewerWorkspace = ({
           )}
           {submissions.map((submission) => (
             <article
-              key={submission.candidateId}
+              key={`${submission.inviteId}/${submission.candidateId}`}
               className="bg-background space-y-2 rounded-lg border p-4"
             >
               <h3 className="font-medium">{submission.candidateName}</h3>
+              <p className="text-muted-foreground text-sm">
+                {submission.title}
+              </p>
               <p className="text-muted-foreground text-xs">
                 <time dateTime={submission.submittedAt.toISOString()}>
                   {submission.submittedAt

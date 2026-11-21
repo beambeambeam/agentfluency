@@ -22,10 +22,11 @@ Sign out, then sign back in with the interviewer account to confirm that the das
 
 ## Walk through the demo
 
-1. Sign in as the interviewer. Change a step title, a workspace file, or a harness setting. Click **Save assessment**.
-2. Sign in as the candidate. Confirm the saved change is present. Expand the data folder, open `data/sales.csv`, and click **Attach to chat**. The file should open with line numbers and colored tokens. A model or harness locked by the interviewer should display a lock.
-3. With the default Codex preset and scripted mode, ask **Why did revenue decline?**. Ask the assistant to check the order counts. The first answer proposes lower volume. The follow-up should report 1,000 orders in both months and a drop in average order value from $100 to $80.
-4. Open a second file and drag its tab to a new position. A focused tab can also move with **Alt+Shift+Left/Right**. Drag or use the arrow keys on the divider between the editor and assistant. Double-click the divider to reset it.
-5. Navigate to the final step and submit a recommendation. Refresh the interviewer dashboard and confirm the recommendation appears under **Submissions**.
+1. Sign in as the interviewer. Change a step title, a workspace file, or a harness setting. **Save assessment** saves your draft. **Generate invitation** saves the current configuration and makes a link and QR code for that version.
+2. Open the invitation in a separate browser session and sign in or sign up as a candidate. Alternatively, scan the QR code from a device that can reach the app's URL. A localhost link stays on the device that scans it. The candidate returns to the invitation after authentication and the three-minute warmup starts automatically. Refresh during the practice exercise to check that the countdown resumes.
+3. When the countdown ends, click **Begin assessment**. Confirm the invited configuration is present. Expand the data folder, open `data/sales.csv`, and click **Attach to chat**. The file should open with line numbers and colored tokens. A model or harness locked by the interviewer should display a lock.
+4. With the default Codex preset and scripted mode, ask **Why did revenue decline?**. Ask the assistant to check the order counts. The first answer proposes lower volume. The follow-up should report 1,000 orders in both months and a drop in average order value from $100 to $80.
+5. Open a second file and drag its tab to a new position. A focused tab can also move with **Alt+Shift+Left/Right**. Drag or use the arrow keys on the divider between the editor and assistant. Double-click the divider to reset it.
+6. Navigate to the final step and submit a recommendation. Refresh the interviewer's dashboard and check **Submissions** for the candidate, assessment title, and recommendation. Editing the draft leaves previously issued invitations attached to their original configuration.
 
 For a pre-PR check, run `bun run check` and `bun run test run`. Also verify that a signed-out dashboard visit redirects to sign-in and that the candidate cannot save assessment settings.

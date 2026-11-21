@@ -37,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "next-themes": "catalog:",
+    "qrcode.react": "^4.2.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "shadcn": "^4.23.0",

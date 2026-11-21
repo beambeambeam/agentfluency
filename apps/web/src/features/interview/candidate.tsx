@@ -21,7 +21,7 @@ import type { WorkspaceTab } from "./editor-tabs";
 import { FileExplorer, getFileKind } from "./file-explorer";
 import type { WorkspaceFile } from "./file-explorer";
 import { submitInterview } from "./server";
-import type { InterviewData } from "./server";
+import type { InvitationData } from "./server";
 import { SourcePreview } from "./source-preview";
 import { WorkbenchSplit } from "./workbench-split";
 
@@ -133,10 +133,11 @@ const FullscreenButton = () => {
 };
 
 export const CandidateWorkspace = ({
+  inviteId,
   assistantMode,
   config,
   submission,
-}: Extract<InterviewData, { role: "candidate" }>) => {
+}: Extract<InvitationData, { stage: "assessment" }> & { inviteId: string }) => {
   const [initialFile] = config.files;
   const hasScratchpad = config.sandbox === "scratchpad";
   const initialTab = initialFile && fileTab(initialFile.path);
@@ -206,7 +207,7 @@ export const CandidateWorkspace = ({
   const submit = async () => {
     setIsSubmitting(true);
     try {
-      await submitInterview({ data: { response } });
+      await submitInterview({ data: { inviteId, response } });
       setStatus("Recommendation submitted.");
     } catch {
       setStatus("Could not submit. Try again.");
@@ -377,6 +378,7 @@ export const CandidateWorkspace = ({
           }
           assistant={
             <AssistantChat
+              inviteId={inviteId}
               initialHarness={config.harness}
               initialModel={config.model}
               allowHarnessSelection={config.allowHarnessSelection}
