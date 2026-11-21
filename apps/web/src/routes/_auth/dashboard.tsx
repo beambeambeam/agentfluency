@@ -1,24 +1,23 @@
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { getInterview, Interview } from "@/features/interview";
-
-const dashboardRoute = getRouteApi("/_auth/dashboard");
+import { InterviewerWorkspace } from "@/features/interview/interviewer";
+import {
+  getInterviewerDraft,
+  getInterviewerSessions,
+} from "@/features/interview/sessions";
 
 const Dashboard = () => {
-  const { session } = dashboardRoute.useRouteContext();
-  const data = dashboardRoute.useLoaderData();
-  return (
-    <>
-      <Interview key={session.user.id} data={data} />
-      <TanStackRouterDevtools position="bottom-left" />
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-    </>
-  );
+  const { sessions, draft } = Route.useLoaderData();
+  return <InterviewerWorkspace sessions={sessions} initialConfig={draft} />;
 };
 
 export const Route = createFileRoute("/_auth/dashboard")({
-  loader: () => getInterview(),
+  loader: async () => {
+    const [sessions, draft] = await Promise.all([
+      getInterviewerSessions(),
+      getInterviewerDraft(),
+    ]);
+    return { sessions, draft };
+  },
   component: Dashboard,
 });

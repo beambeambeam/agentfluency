@@ -17,11 +17,7 @@ import {
   HarnessPicker,
   ModelPicker,
 } from "@/features/interview/assistant-picker";
-import {
-  harnessSchema,
-  modelSchema,
-  openAiModelSchema,
-} from "@/features/interview/config";
+import { openAiModelSchema } from "@/features/interview/config";
 import type { Harness, Model } from "@/features/interview/config";
 
 import {
@@ -36,6 +32,7 @@ const messageText = (message: UIMessage) =>
     .join("");
 
 interface AssistantChatProps {
+  sessionId: string;
   initialHarness: Harness;
   initialModel: Model;
   allowHarnessSelection: boolean;
@@ -46,6 +43,7 @@ interface AssistantChatProps {
 }
 
 export const AssistantChat = ({
+  sessionId,
   initialHarness,
   initialModel,
   allowHarnessSelection,
@@ -69,8 +67,7 @@ export const AssistantChat = ({
     fetcher: ({ data, messages: history, runId, threadId }, { signal }) =>
       streamAssistantChat({
         data: {
-          harness: harnessSchema.parse(data?.harness ?? initialHarness),
-          model: modelSchema.parse(data?.model ?? initialModel),
+          sessionId,
           attachmentId:
             typeof data?.attachmentId === "string"
               ? data.attachmentId
@@ -106,7 +103,7 @@ export const AssistantChat = ({
       followReplies.current = true;
       setPrompt("");
       void sendMessage(message, {
-        body: { harness, model, attachmentId: attachment?.id },
+        body: { attachmentId: attachment?.id },
       });
     }
   };
@@ -304,9 +301,7 @@ export const AssistantChat = ({
           </p>
         )}
         {mode === "live" && !modelUnavailable && (
-          <p className="wb-mode">
-            OpenAI stream · selected harness is a preset
-          </p>
+          <p className="wb-mode">Codex workspace · OpenAI live</p>
         )}
       </div>
     </section>

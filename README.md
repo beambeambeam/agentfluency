@@ -114,7 +114,7 @@ Successful pushes to `main` deploy the verified build to [agentfluency.thisisbea
 
 The GitHub Actions `production` environment allows deployments from `main`. `cf deploy` uses the `CLOUDFLARE_ACCOUNT_ID` variable and `CLOUDFLARE_API_TOKEN` secret. The deploy step passes `BETTER_AUTH_SECRET`, `DATABASE_URL`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` as Worker runtime secrets.
 
-Set the optional `OPENAI_API_KEY` secret in that environment to enable the dashboard assistant on the next deploy.
+Set `OPENAI_API_KEY` in that environment before running a live interview. The same OpenAI project key authorizes Responses streaming and the session container. Follow the [interview walkthrough](docs/demo.md) to verify the deployed flow.
 
 Use a PostgreSQL endpoint reachable from both GitHub Actions and Cloudflare Workers. The production job applies committed Drizzle migrations using `DATABASE_URL` before publishing the Worker. A migration failure stops the deployment. Pull requests test the migrations against a disposable PostgreSQL instance.
 

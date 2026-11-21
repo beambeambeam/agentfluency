@@ -2,14 +2,14 @@ import {
   Add01Icon,
   ArrowUp02Icon,
   Delete02Icon,
-  FileAddIcon,
-  FloppyDiskIcon,
+  Calendar03Icon,
   Folder01Icon,
   InboxIcon,
   Settings02Icon,
   Task01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -17,23 +17,55 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { HarnessPicker, ModelPicker } from "./assistant-picker";
-import { assessmentSchema, sandboxes } from "./config";
+import { openAiModelSchema, sandboxes } from "./config";
 import type { AssessmentConfig } from "./config";
-import { updateInterview } from "./server";
-import type { InterviewData } from "./server";
+import { demoAssessment } from "./demo-config";
+import { InterviewFlow } from "./interview-flow";
+import {
+  createSessionSchema,
+  metricLabels,
+  selectedMetric,
+} from "./session-config";
+import type { SessionMetric } from "./session-config";
+import { NewInvite, SessionOverview } from "./session-overview";
+import type { InterviewerSession } from "./session-overview";
+import { createInterviewSession } from "./sessions";
+import { WorkspaceFiles } from "./workspace-files";
 
 const field =
   "border-input bg-background w-full rounded-md border px-3 py-2 text-sm";
 const panel = "bg-card space-y-4 rounded-xl border p-5";
 
 export const InterviewerWorkspace = ({
-  config,
-  submissions,
-}: Extract<InterviewData, { role: "interviewer" }>) => {
-  const [draft, setDraft] = useState(config);
-  const [tab, setTab] = useState<"flow" | "workspace" | "submissions">("flow");
+  sessions,
+  initialConfig,
+}: {
+  sessions: InterviewerSession[];
+  initialConfig: AssessmentConfig | null;
+}) => {
+  const router = useRouter();
+  const [draft, setDraft] = useState<AssessmentConfig>({
+    ...(initialConfig ?? demoAssessment),
+    harness: "workspace",
+    model:
+      openAiModelSchema.safeParse(initialConfig?.model).data ?? "gpt-6.1-sol",
+    allowHarnessSelection: false,
+    allowModelSelection: false,
+  });
+  const [tab, setTab] = useState<"flow" | "workspace" | "sessions">("flow");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [duration, setDuration] = useState<30 | 60>(30);
+  const [metrics, setMetrics] = useState<SessionMetric[]>([
+    "steps",
+    "files",
+    "prompts",
+  ]);
+  const [useCodeInterpreter, setUseCodeInterpreter] = useState(true);
+  const [invite, setInvite] = useState<string>();
 
   const change = <Key extends keyof AssessmentConfig>(
     key: Key,
@@ -43,10 +75,29 @@ export const InterviewerWorkspace = ({
     setStatus("");
   };
 
+  const useCurrentTime = () => {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    setSchedule(local.toISOString().slice(0, 16));
+  };
+
   const save = async () => {
-    const parsed = assessmentSchema.safeParse(draft);
+    const localDate = new Date(schedule);
+    const parsed = createSessionSchema.safeParse({
+      assessment: draft,
+      candidateEmail: email,
+      scheduledAt: Number.isFinite(localDate.getTime())
+        ? localDate.toISOString()
+        : "",
+      duration,
+      metrics,
+      useCodeInterpreter,
+    });
     if (!parsed.success) {
       const [issue] = parsed.error.issues;
+      if (issue?.path[0] === "assessment" && issue.path[1] === "files") {
+        setTab("workspace");
+      }
       setStatus(
         issue
           ? `${issue.path.join(" › ")}: ${issue.message}`
@@ -56,30 +107,35 @@ export const InterviewerWorkspace = ({
     }
     setSaving(true);
     try {
-      await updateInterview({ data: parsed.data });
-      setDraft(parsed.data);
-      setStatus("Saved. The candidate workspace uses this configuration.");
-    } catch {
-      setStatus("Could not save. Try again.");
+      const result = await createInterviewSession({ data: parsed.data });
+      setInvite(result.invite);
+      setTab("sessions");
+      await router.invalidate();
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Could not create the session. Try again."
+      );
     }
     setSaving(false);
   };
 
   return (
-    <main className="w-full min-w-0 space-y-5 px-4 py-6 sm:px-7">
+    <main className="w-full min-w-0 space-y-5 overflow-auto px-4 py-6 sm:px-7">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <p className="text-muted-foreground text-xs font-medium">
             Interviewer
           </p>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Assessment builder
+            Interview studio
           </h1>
           <p className="text-muted-foreground text-sm">{draft.title}</p>
         </div>
-        <Button type="button" disabled={saving} onClick={save}>
-          <HugeiconsIcon icon={FloppyDiskIcon} aria-hidden="true" />
-          {saving ? "Saving…" : "Save assessment"}
+        <Button type="button" disabled={saving || uploading} onClick={save}>
+          <HugeiconsIcon icon={Calendar03Icon} aria-hidden="true" />
+          {saving ? "Creating…" : "Create session link"}
         </Button>
       </header>
       {status && (
@@ -87,6 +143,7 @@ export const InterviewerWorkspace = ({
           {status}
         </output>
       )}
+      {invite && <NewInvite invite={invite} />}
       <nav
         aria-label="Assessment builder sections"
         className="flex flex-wrap gap-2 border-b pb-3"
@@ -108,11 +165,11 @@ export const InterviewerWorkspace = ({
         </Button>
         <Button
           type="button"
-          variant={tab === "submissions" ? "secondary" : "ghost"}
-          onClick={() => setTab("submissions")}
+          variant={tab === "sessions" ? "secondary" : "ghost"}
+          onClick={() => setTab("sessions")}
         >
-          <HugeiconsIcon icon={InboxIcon} aria-hidden="true" /> Submissions (
-          {submissions.length})
+          <HugeiconsIcon icon={InboxIcon} aria-hidden="true" /> Sessions (
+          {sessions.length})
         </Button>
       </nav>
       {tab === "flow" && (
@@ -141,6 +198,7 @@ export const InterviewerWorkspace = ({
                 <HugeiconsIcon icon={Add01Icon} aria-hidden="true" /> Add step
               </Button>
             </div>
+            <InterviewFlow steps={draft.steps} />
             <ol className="space-y-3">
               {draft.steps.map((step, index) => {
                 const update = (values: Partial<typeof step>) =>
@@ -241,38 +299,16 @@ export const InterviewerWorkspace = ({
             </h2>
             <div className="space-y-1 text-sm">
               <div>Harness preset</div>
-              <HarnessPicker
-                value={draft.harness}
-                onChange={(value) => change("harness", value)}
-              />
+              <HarnessPicker locked value="workspace" />
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.allowHarnessSelection}
-                onChange={(event) =>
-                  change("allowHarnessSelection", event.target.checked)
-                }
-              />
-              Candidate can change harness
-            </label>
             <div className="space-y-1 text-sm">
               <div>Model</div>
               <ModelPicker
+                supportedModels={openAiModelSchema.options}
                 value={draft.model}
                 onChange={(value) => change("model", value)}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.allowModelSelection}
-                onChange={(event) =>
-                  change("allowModelSelection", event.target.checked)
-                }
-              />
-              Candidate can change model
-            </label>
             <label className="block space-y-1 text-sm">
               <span>Sandbox mode</span>
               <select
@@ -304,6 +340,76 @@ export const InterviewerWorkspace = ({
               />
               Allow attaching files to chat
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={useCodeInterpreter}
+                onChange={(event) =>
+                  setUseCodeInterpreter(event.target.checked)
+                }
+              />
+              Enable sandboxed Python analysis
+            </label>
+            <div className="space-y-3 border-t pt-4">
+              <h2 className="font-semibold">Schedule and invite</h2>
+              <label className="block space-y-1 text-sm">
+                Candidate email
+                <Input
+                  type="email"
+                  value={email}
+                  placeholder="candidate@example.com"
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </label>
+              <label className="block space-y-1 text-sm">
+                Start time (your local time)
+                <Input
+                  type="datetime-local"
+                  value={schedule}
+                  onChange={(event) => setSchedule(event.target.value)}
+                />
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={useCurrentTime}
+              >
+                Start now
+              </Button>
+              <label className="block space-y-1 text-sm">
+                Duration
+                <select
+                  className={field}
+                  value={duration}
+                  onChange={(event) =>
+                    setDuration(event.target.value === "60" ? 60 : 30)
+                  }
+                >
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                </select>
+              </label>
+            </div>
+            <fieldset className="space-y-2 border-t pt-4">
+              <legend className="font-semibold">Review metrics</legend>
+              {selectedMetric.options.map((metric) => (
+                <label key={metric} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={metrics.includes(metric)}
+                    onChange={(event) =>
+                      setMetrics(
+                        event.target.checked
+                          ? [...metrics, metric]
+                          : metrics.filter((item) => item !== metric)
+                      )
+                    }
+                  />
+                  {metricLabels[metric]}
+                </label>
+              ))}
+            </fieldset>
           </section>
         </div>
       )}
@@ -340,123 +446,21 @@ export const InterviewerWorkspace = ({
               />
             </label>
           </section>
-          <section className={panel} aria-labelledby="files-title">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h2 id="files-title" className="font-semibold">
-                  Provided files
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Use paths like data/sales.csv to create folders.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={draft.files.length >= 18}
-                onClick={() =>
-                  change("files", [
-                    ...draft.files,
-                    { id: crypto.randomUUID(), path: "", content: "" },
-                  ])
-                }
-              >
-                <HugeiconsIcon icon={FileAddIcon} aria-hidden="true" /> Add file
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {draft.files.map((file) => {
-                const update = (values: Partial<typeof file>) =>
-                  change(
-                    "files",
-                    draft.files.map((item) =>
-                      item.id === file.id ? { ...item, ...values } : item
-                    )
-                  );
-                return (
-                  <div
-                    key={file.id}
-                    className="bg-background space-y-3 rounded-lg border p-4"
-                  >
-                    <div className="flex items-end gap-2">
-                      <label className="grow space-y-1 text-sm">
-                        <span>File path</span>
-                        <Input
-                          value={file.path}
-                          maxLength={160}
-                          placeholder="folder/example.txt"
-                          onChange={(event) =>
-                            update({ path: event.target.value })
-                          }
-                        />
-                      </label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          change(
-                            "files",
-                            draft.files.filter((item) => item.id !== file.id)
-                          )
-                        }
-                      >
-                        <HugeiconsIcon icon={Delete02Icon} aria-hidden="true" />{" "}
-                        Remove file
-                      </Button>
-                    </div>
-                    <label className="block space-y-1 text-sm">
-                      <span>Contents</span>
-                      <Textarea
-                        className={`${field} font-mono`}
-                        rows={5}
-                        maxLength={12_000}
-                        value={file.content}
-                        onChange={(event) =>
-                          update({ content: event.target.value })
-                        }
-                      />
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <WorkspaceFiles
+            files={draft.files}
+            uploading={uploading}
+            onUploadingChange={setUploading}
+            onChange={(update) => {
+              setDraft((previous) => ({
+                ...previous,
+                files: update(previous.files),
+              }));
+              setStatus("");
+            }}
+          />
         </div>
       )}
-      {tab === "submissions" && (
-        <section className={panel} aria-labelledby="submissions-title">
-          <h2 id="submissions-title" className="font-semibold">
-            Candidate submissions
-          </h2>
-          {submissions.length === 0 && (
-            <p className="text-muted-foreground text-sm">
-              Submitted recommendations will appear here.
-            </p>
-          )}
-          {submissions.map((submission) => (
-            <article
-              key={submission.candidateId}
-              className="bg-background space-y-2 rounded-lg border p-4"
-            >
-              <h3 className="font-medium">{submission.candidateName}</h3>
-              <p className="text-muted-foreground text-xs">
-                <time dateTime={submission.submittedAt.toISOString()}>
-                  {submission.submittedAt
-                    .toISOString()
-                    .slice(0, 16)
-                    .replace("T", " ")}{" "}
-                  UTC
-                </time>
-              </p>
-              <p className="text-sm whitespace-pre-wrap">
-                {submission.response}
-              </p>
-            </article>
-          ))}
-        </section>
-      )}
+      {tab === "sessions" && <SessionOverview sessions={sessions} />}
     </main>
   );
 };

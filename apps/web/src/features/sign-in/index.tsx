@@ -11,8 +11,10 @@ import { authClient } from "@/lib/auth-client";
 
 export default function SignInForm({
   onSwitchToSignUp,
+  invite,
 }: {
   onSwitchToSignUp: () => void;
+  invite?: string;
 }) {
   const navigate = useNavigate({
     from: "/",
@@ -32,9 +34,11 @@ export default function SignInForm({
         },
         {
           onSuccess: () => {
-            navigate({
-              to: "/dashboard",
-            });
+            if (invite) {
+              void navigate({ to: "/interview/$invite", params: { invite } });
+            } else {
+              void navigate({ to: "/dashboard" });
+            }
             toast.success("Sign in successful");
           },
           onError: (error) => {

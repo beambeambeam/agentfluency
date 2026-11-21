@@ -1,36 +1,17 @@
 # Architecture and demo handoff
 
-## Product direction
+AgentFluency assesses AI fluency with a timed work sample. Interviewers define the problem, workspace, sequential steps, AI permissions, and evidence. Candidates use the workspace and submit a deliverable for human review.
 
-AI fluency is a distinct hiring competency alongside domain knowledge, technical ability, and communication. An interviewer sets a work sample and its AI environment. A candidate completes the work, checks the assistant's output against the available evidence, and submits a deliverable. The platform is designed for work across roles, including business analysis, customer support, marketing, and engineering.
+## Interview flow
 
-The hackathon demo uses a business analyst scenario. Orders remain at 1,000 while revenue falls from $100,000 to $80,000. The default scripted assistant initially suggests that order volume fell. Asking it to verify the result exposes the difference between order volume and average order value. The evaluator can read the candidate's recommendation and see whether it cites the supplied data.
+- **Interviewer.** Better Auth guards the interview studio. The ordered form is the workflow source of truth. React Flow previews only forward edges. PostgreSQL stores an immutable snapshot per session and keeps the latest configuration as the interviewer's draft.
+- **Invitation.** The link or locally rendered QR code carries a signed, unguessable capability. The server verifies the signature, candidate role, and assigned email. Starting binds the session to the authenticated account. The schedule is interpreted in the interviewer's local timezone and stored as UTC. A late start uses the remaining time in the original window.
+- **Workspace.** The invite route omits app navigation and requests fullscreen on Start. A candidate can show or hide the problem, read files in the IDE, use a scratchpad when enabled, and advance through the ordered steps. Local editor and chat state live in the open tab.
+- **Runtime.** A PostgreSQL row lock serializes container provisioning. The application creates a network-disabled OpenAI container, uploads the UTF-8 workspace as a tar archive with its folder paths, and assigns the container ID to the session. The OpenAI Responses adapter streams through TanStack AI. The configured model is enforced server-side. If the interviewer enables sandboxed Python, the code interpreter receives the existing container ID. The app attempts immediate cleanup after submission and uses the provider's inactivity expiry for abandoned containers.
+- **Review.** The interviewer can open a report for sessions they own after submission or expiry. It includes the submitted text and timing plus selected steps, files, prompt count, or transcript. Prompt and response text is stored only when recording is enabled. Counts of assistant requests also enforce a per-session limit.
 
-## Request and data flow
+## Deployment
 
-| Area | Where to start | Behavior |
-| --- | --- | --- |
-| Authentication | [Better Auth configuration](../packages/auth/src/index.ts) and [session middleware](../apps/web/src/middleware/auth.ts) | Email and password sign-in uses a PostgreSQL-backed session. New accounts get the candidate role. Better Auth treats the role as server-owned. The local demo procedure assigns interviewer access in the database. |
-| Dashboard | [Protected route](../apps/web/src/routes/_auth/route.tsx), [dashboard](../apps/web/src/routes/_auth/dashboard.tsx), and [interview server functions](../apps/web/src/features/interview/server.ts) | The session determines which workspace renders. The save action checks the interviewer role. The submission action checks the candidate role and takes the candidate ID from the session. |
-| Assessment | [Configuration schema](../apps/web/src/features/interview/config.ts), [demo scenario](../apps/web/src/features/interview/demo-config.ts), and [database access](../packages/db/src/demo-assessment.ts) | The demo starts from a fixture and uses one shared saved assessment. Edits replace its JSON configuration. An assessment contains ordered steps, a brief, workspace name, files with slash-delimited paths, harness and model selections, candidate selection permissions, and sandbox mode. |
-| Candidate workbench | [Candidate workspace](../apps/web/src/features/interview/candidate.tsx), [file explorer](../apps/web/src/features/interview/file-explorer.tsx), and [source preview](../apps/web/src/features/interview/source-preview.tsx) | The fullscreen layout combines a collapsible explorer, tabbed read-only file previews, the task panel, and the assistant. The interface uses shadcn controls. The workbench is monochrome with color reserved for file icons and syntax. A scratchpad appears when the assessor enables it. |
-| Assistant | [Composer](../apps/web/src/features/assistant-chat/index.tsx) and [stream server function](../apps/web/src/features/assistant-chat/chat.ts) | The composer sends each turn's selected harness, model, and optional file ID. The server checks the candidate role, reloads the assessment, and enforces the configured locks. It resolves allowed attachments from stored file contents and streams replies as server-sent events through TanStack AI. |
-| Submissions | [Assessment tables](../packages/db/src/schema/assessment.ts) and [interviewer workspace](../apps/web/src/features/interview/interviewer.tsx) | PostgreSQL stores the latest recommendation per candidate and its submission time. The interviewer can read submitted recommendations in the dashboard. |
+GitHub Actions verifies migrations against disposable PostgreSQL. The production job applies committed migrations with the `DATABASE_URL` secret before publishing the Cloudflare Worker. Configure the server-only `OPENAI_API_KEY` in the GitHub Actions `production` environment. The same key authorizes the API model and container for the demo. See the [interview walkthrough](demo.md) for the manual smoke test.
 
-The shared `packages/api` workspace still provides the starter oRPC health check and private endpoint. Interview reads and writes currently use TanStack Start server functions. The S3 package and local SeaweedFS environment are available for future assets. Demo files are stored as text in assessment configuration.
-
-The landing and sign-in artwork uses the MIT-licensed [DitherCN shader runtime](https://github.com/opencoredev/dithercn) vendored in `apps/web/src/lib/dither` with an ES2022 compatibility adjustment. The candidate workbench keeps tab order and the editor split in page state. Narrow layouts stack the assistant below the editor.
-
-## Runtime boundaries
-
-- **Harnesses** are local prompt and interaction presets. The catalog displays Codex, Claude Code, Cursor Agent, Grok Build, and Gemini CLI. Stored preset IDs retain compatibility with earlier demo configuration. Vendor agents and their tool runtimes are future integrations.
-- **Model execution** uses the OpenAI adapter for configured OpenAI models. Local development uses a labeled scripted adapter when no OpenAI key is set. The other model choices are catalog entries available in the scripted demo. Production requires an OpenAI key and a supported OpenAI model.
-- **Sandbox** selects a read-only workspace or a workspace with a browser scratchpad. The scratchpad and chat transcript live in the open page. Candidate invitations, per-session containers or VMs, execution tools, transcript persistence, and evidence replay are future work.
-- **Assessment review** shows human-readable recommendations. Automated grading, rubric evaluation, and hiring decisions are outside the demo.
-- **PostgreSQL** stores users, sessions, assessment configuration, and recommendations. The shared demo is intended for controlled testing. Multiple organizations, assignment boundaries, and concurrent interviewer editing need their own data model before a general rollout.
-
-## Deployment status
-
-The [GitHub Actions workflow](../.github/workflows/ci.yml) verifies migrations against disposable PostgreSQL and deploys successful builds from `main` to Cloudflare Workers. The production job applies committed Drizzle migrations to the database in the `DATABASE_URL` secret before publishing the Worker. The initial migration supports both empty databases and databases with the original Better Auth tables. It adds the interview tables and defaults existing users to the candidate role. Demo accounts are provisioned separately.
-
-The [demo walkthrough](demo.md) covers setup, disposable accounts, and acceptance checks. Keep environment values and account passwords in local configuration or deployment secrets.
+The database retains earlier assessment and attempt records. New sessions use the timed, email-bound invite flow. The landing and sign-in art uses the MIT-licensed [DitherCN runtime](https://github.com/opencoredev/dithercn). Shared branding uses the SVG assets in `apps/web/public/statics/logo` and Chillax with a local font fallback.

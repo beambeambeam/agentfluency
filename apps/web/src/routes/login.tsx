@@ -5,11 +5,13 @@ import { useState } from "react";
 
 import { DitherArtwork } from "@/components/dither-artwork";
 import { buttonVariants } from "@/components/ui/button";
+import { inviteSchema } from "@/features/interview/session-config";
 import SignInForm from "@/features/sign-in";
 import SignUpForm from "@/features/sign-up";
 import { cn } from "@/lib/utils";
 
 const Login = () => {
+  const { invite } = Route.useSearch();
   const [showSignIn, setShowSignIn] = useState(true);
 
   return (
@@ -45,9 +47,15 @@ const Login = () => {
             </Link>
             <div className="mx-auto flex w-full max-w-sm flex-1 items-center py-8">
               {showSignIn ? (
-                <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
+                <SignInForm
+                  invite={invite}
+                  onSwitchToSignUp={() => setShowSignIn(false)}
+                />
               ) : (
-                <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
+                <SignUpForm
+                  invite={invite}
+                  onSwitchToSignIn={() => setShowSignIn(true)}
+                />
               )}
             </div>
           </div>
@@ -58,5 +66,9 @@ const Login = () => {
 };
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): { invite?: string } => ({
+    invite: inviteSchema.safeParse(search.invite).data,
+  }),
+  head: () => ({ meta: [{ name: "referrer", content: "no-referrer" }] }),
   component: Login,
 });

@@ -1,16 +1,18 @@
-# Local interview demo
+# Interview demo
 
-## Start the application
+## Set up the app
 
-1. Run `bun install` and `bun run infra:start` from the repository root. An existing local PostgreSQL server also works.
-2. Set `BETTER_AUTH_URL=http://localhost:3001`, a generated `BETTER_AUTH_SECRET` of at least 32 characters, and a local `DATABASE_URL` in `apps/web/.env`. The [Docker Compose file](../packages/docker/docker-compose.yml) defines the disposable local database name, port, and credentials. The [database env schema](../packages/db/.env.schema) imports the web database settings. Use an ignored `packages/db/.env` override if required by your local setup.
-3. Run `bun run db:migrate` against that local database. Run `bun run dev:web` and open [the sign-in page](http://localhost:3001/login).
+1. Run `bun install --frozen-lockfile` and `bun run infra:start` from the repository root. An existing local PostgreSQL instance also works.
+2. Configure `BETTER_AUTH_URL=http://localhost:3001`, a `BETTER_AUTH_SECRET` of at least 32 characters, the local `DATABASE_URL`, and a server-only `OPENAI_API_KEY` in the ignored `apps/web/.env`. The OpenAI project must have billing and access to Responses and Containers. Production reads the key from the GitHub Actions `production` environment.
+3. Run `bun run db:migrate`, then `bun run dev:web`.
 
-An OpenAI key is optional for this walkthrough. Leave it unset to get repeatable, labeled scripted replies. Set `OPENAI_API_KEY` in the web env and restart to exercise a live OpenAI model.
+## Run a timed interview
 
-## Create two local accounts
-
-Use **Sign Up** to create two accounts, such as `interviewer@agentfluency.test` and `candidate@agentfluency.test`. Choose disposable passwords. Both start as candidates. Run the following only on the local demo database, using the email registered for the interviewer:
+1. Sign up with two different addresses. Promote the interviewer account on the demo database using the SQL below, then sign out and back in. Share the invite only with the candidate assigned to it.
+2. As the interviewer, open **Interview studio**. Enter the candidate's address, choose **Start now** or schedule a date, and select 30 or 60 minutes. Edit the ordered steps, select a supported OpenAI model, set permissions, and choose the review metrics. Under **Workspace and files**, use **Add file** to write your own text, or **Upload files** or **Upload folder** to import UTF-8 text. Select any file to edit its path and contents. A relative path such as `data/sales.csv` creates the folder in the candidate's explorer.
+3. Select **Create session link**. Copy the link or show the QR code. Open it in a separate browser profile and sign in as the invited candidate. **Start interview** opens the timed workspace. The scheduled end is enforced on the server.
+4. Open `data/sales.csv` and ask Codex to verify why revenue declined using the workspace file. Enable sandboxed Python in the setup if you want the model to inspect the archive through the session's OpenAI container. The expected check is 1,000 orders in both months, with average order value falling from $100 to $80.
+5. Use **Hide problem** and **View problem** to switch between the task and the editor. Advance through the configured steps and submit. On the interviewer account, open **Sessions → Review** for the submission, timing, and selected activity.
 
 ```sql
 UPDATE "user"
@@ -18,14 +20,4 @@ SET role = 'interviewer'
 WHERE email = 'interviewer@agentfluency.test';
 ```
 
-Sign out, then sign back in with the interviewer account to confirm that the dashboard opens the assessment builder. Use a private browser window for the candidate if you want both roles open at once.
-
-## Walk through the demo
-
-1. Sign in as the interviewer. Change a step title, a workspace file, or a harness setting. Click **Save assessment**.
-2. Sign in as the candidate. Confirm the saved change is present. Expand the data folder, open `data/sales.csv`, and click **Attach to chat**. The file should open with line numbers and colored tokens. A model or harness locked by the interviewer should display a lock.
-3. With the default Codex preset and scripted mode, ask **Why did revenue decline?**. Ask the assistant to check the order counts. The first answer proposes lower volume. The follow-up should report 1,000 orders in both months and a drop in average order value from $100 to $80.
-4. Open a second file and drag its tab to a new position. A focused tab can also move with **Alt+Shift+Left/Right**. Drag or use the arrow keys on the divider between the editor and assistant. Double-click the divider to reset it.
-5. Navigate to the final step and submit a recommendation. Refresh the interviewer dashboard and confirm the recommendation appears under **Submissions**.
-
-For a pre-PR check, run `bun run check` and `bun run test run`. Also verify that a signed-out dashboard visit redirects to sign-in and that the candidate cannot save assessment settings.
+The candidate screen has no app navigation and requests browser fullscreen on start. The browser still allows the candidate to exit fullscreen or switch tabs. The report records the chosen evidence and leaves the assessment to the interviewer.
