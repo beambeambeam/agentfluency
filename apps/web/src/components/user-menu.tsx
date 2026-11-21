@@ -1,4 +1,6 @@
-import { Button } from "@agentfluency/ui/components/button";
+import { Link, useNavigate } from "@tanstack/react-router";
+
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,10 +9,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@agentfluency/ui/components/dropdown-menu";
-import { Skeleton } from "@agentfluency/ui/components/skeleton";
-import { Link, useNavigate } from "@tanstack/react-router";
-
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 
 export default function UserMenu() {
@@ -34,7 +34,7 @@ export default function UserMenu() {
       <DropdownMenuTrigger render={<Button variant="outline" />}>
         {session.user.name}
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-card">
+      <DropdownMenuContent>
         <DropdownMenuGroup>
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />

@@ -1,17 +1,39 @@
+import ultraciteFormat from "ultracite/oxfmt";
+import core from "ultracite/oxlint/core";
+import react from "ultracite/oxlint/react";
+import tanstack from "ultracite/oxlint/tanstack";
 import { defineConfig } from "vite-plus";
+import { configDefaults } from "vite-plus/test/config";
+
+const toolOutput = ["apps/web/.tanstack/**", "apps/web/.vinxi/**"];
 
 export default defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
+  test: {
+    include: [
+      ...configDefaults.include,
+      "apps/web/src/features/**/__tests__/index.{ts,tsx}",
+    ],
+  },
   lint: {
-    ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "packages/db/dist/**",
-      "packages/api/dist/**",
-      "packages/auth/dist/**",
+    env: core.env,
+    extends: [core, react, tanstack],
+    plugins: [...core.plugins, "vitest"],
+    rules: {
+      "vitest/consistent-test-it": [
+        "error",
+        { fn: "test", withinDescribe: "test" },
+      ],
+    },
+    ignorePatterns: [...core.ignorePatterns, ...toolOutput],
+    overrides: [
+      {
+        // Better Auth emits inline purity annotations in the generated schema.
+        files: ["packages/db/src/schema/auth.ts"],
+        rules: { "no-inline-comments": "off" },
+      },
     ],
     options: {
       typeAware: false,
@@ -19,20 +41,12 @@ export default defineConfig({
     },
   },
   fmt: {
+    ...ultraciteFormat,
     ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "packages/db/dist/**",
-      "packages/api/dist/**",
-      "packages/auth/dist/**",
+      ...ultraciteFormat.ignorePatterns,
+      ...toolOutput,
+      ".agents/skills/**",
     ],
-    singleQuote: false,
-    semi: true,
-    sortPackageJson: true,
   },
   staged: {
     "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
