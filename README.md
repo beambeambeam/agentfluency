@@ -65,6 +65,12 @@ Vite+ runs its bundled Oxlint and Oxfmt using the Ultracite presets in `vite.con
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
 
+## Testing
+
+Run `bun run test` from the repository root. Use `bun run test watch` while editing. Vite+ provides Vitest. Import `test` and `expect` explicitly from `vite-plus/test`. Use `test()` for each case, including inside `describe()`.
+
+Keep web feature tests in `__tests__/index.ts` or `__tests__/index.tsx` inside the feature folder. Elsewhere, use `*.test.ts` or `*.test.tsx`. Tests run in Node by default. Add `// @vitest-environment jsdom` at the top of React tests that need the DOM. With explicit Vitest imports, register React Testing Library's `cleanup` with `afterEach`.
+
 ## Project Structure
 
 ```

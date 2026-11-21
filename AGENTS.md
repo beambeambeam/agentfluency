@@ -6,7 +6,8 @@
 ## Web feature layout
 
 - Put feature-specific UI and logic in `apps/web/src/features/`. Keep shared UI in `src/components/` and route wiring in `src/routes/`.
-- Start with one kebab-case file, such as `sign-in.tsx`. When it needs child files or tests, move the entry to `sign-in/index.tsx` and keep files such as `test.tsx` beside it.
+- Start with one kebab-case file, such as `sign-in.tsx`. When it needs child files or tests, move the entry to `sign-in/index.tsx`.
+- Put a feature's tests in its `__tests__/index.tsx` when they use JSX, or `__tests__/index.ts` otherwise. Define cases with `test()` from `vite-plus/test`.
 - Import a feature through its entry, such as `@/features/sign-in`.
 
 ## Agent skills
