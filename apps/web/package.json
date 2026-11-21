@@ -8,7 +8,7 @@
     "dev": "vp dev",
     "check-types": "tsc -b ../../packages/api && vp build && tsc --noEmit",
     "env:generate": "varlock codegen",
-    "auth:generate": "varlock run -- bun x auth@latest generate --config src/services.ts --output ../../packages/db/src/schema/auth.ts --yes"
+    "auth:generate": "varlock run -- bun x auth@latest generate --config src/auth.config.ts --output ../../packages/db/src/schema/auth.ts --yes"
   },
   "dependencies": {
     "@agentfluency/api": "workspace:*",
@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@agentfluency/config": "workspace:*",
+    "@cloudflare/vite-plugin": "2.0.0-rc.3",
     "@tanstack/react-query-devtools": "^5.107.1",
     "@tanstack/react-router-devtools": "^1.167.3",
     "@testing-library/dom": "^10.4.2",
@@ -52,6 +53,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^6.3.0",
+    "cf": "1.0.0-rc.2",
     "jsdom": "^31.0.0",
     "typescript": "catalog:",
     "vite": "catalog:",

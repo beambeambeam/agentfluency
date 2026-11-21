@@ -1,7 +1,11 @@
 import { createAuth } from "@agentfluency/auth";
 import { createDb } from "@agentfluency/db";
 
-import { ENV } from "./env.server";
+import { getServerEnv } from "./env.server";
 
-export const db = createDb(ENV);
-export const auth = createAuth(ENV, db);
+export const createServices = () => {
+  const env = getServerEnv();
+  const db = createDb(env);
+
+  return { db, auth: createAuth(env, db) };
+};

@@ -37,7 +37,7 @@
     "lint": "vp lint",
     "format": "vp fmt",
     "staged": "vp staged",
-    "hooks:setup": "vp config",
+    "hooks:setup": "vp hooks enable",
     "infra:start": "docker compose -f packages/docker/docker-compose.yml up --wait --wait-timeout 90",
     "storage:start": "docker compose -f packages/docker/docker-compose.yml up --wait --wait-timeout 90 seaweedfs",
     "storage:stop": "docker compose -f packages/docker/docker-compose.yml stop seaweedfs",

@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CF_SEND_TELEMETRY: "false"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        run: bun run format --check
+
+      - name: Lint
+        run: bun run lint --deny-warnings --format=agent
+
+      - name: Check types and build web app
+        run: bun run check-types
+
+      - name: Validate Worker build
+        working-directory: apps/web
+        run: npx --no-install cf deploy --prebuilt --mode production --dry-run
+
+      - name: Run tests
+        run: bun run test run
+
+      - name: Save Worker build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: worker-build
+          path: apps/web/.cloudflare/output
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudflare
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://agentfluency.thisisbeam.fyi
+    concurrency:
+      group: cloudflare-production
+      cancel-in-progress: false
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download verified Worker build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: worker-build
+          path: apps/web/.cloudflare/output
+
+      - name: Deploy Worker
+        working-directory: apps/web
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          main_sha=$(git ls-remote --exit-code origin refs/heads/main | cut -f1)
+          if [[ "$main_sha" != "$GITHUB_SHA" ]]; then
+            echo "Main now points to a different commit. Skipping deployment."
+            exit 0
+          fi
+
+          : "${CLOUDFLARE_ACCOUNT_ID:?Set the production CLOUDFLARE_ACCOUNT_ID variable}"
+          : "${CLOUDFLARE_API_TOKEN:?Set the production CLOUDFLARE_API_TOKEN secret}"
+          : "${BETTER_AUTH_SECRET:?Set the production BETTER_AUTH_SECRET secret}"
+          : "${DATABASE_URL:?Set the production DATABASE_URL secret}"
+
+          umask 077
+          secrets_file=$(mktemp "$RUNNER_TEMP/agentfluency-secrets.XXXXXX")
+          trap 'rm -f "$secrets_file"' EXIT
+          node -e 'const { BETTER_AUTH_SECRET, DATABASE_URL } = process.env; process.stdout.write(JSON.stringify({ BETTER_AUTH_SECRET, DATABASE_URL }));' > "$secrets_file"
+          npx --no-install cf deploy --prebuilt --mode production --secrets-file "$secrets_file"
+
+          curl --fail --fail-early --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors \
+            --max-time 15 https://agentfluency.thisisbeam.fyi/ \
+            https://agentfluency.thisisbeam.fyi/api/auth/get-session > /dev/null
