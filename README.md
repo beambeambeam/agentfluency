@@ -22,6 +22,22 @@ First, install the dependencies:
 bun install
 ```
 
+## Local Docker services
+
+Run both services in one Compose project:
+
+```bash
+bun run infra:start
+```
+
+Expand `agentfluency` in Docker Desktop's Containers view to see Postgres and SeaweedFS. Both services bind to loopback and store data in named volumes. If port `5432` is already in use, run `POSTGRES_PORT=5433 bun run infra:start` and use port `5433` in `DATABASE_URL`.
+
+### Local S3
+
+The S3 endpoint is `http://127.0.0.1:8333`. SeaweedFS creates the private `agentfluency-assets` bucket on startup. Compose reads the disposable defaults from [`packages/docker/.env.example`](packages/docker/.env.example). To override them, copy the template to `packages/docker/.env` and edit that ignored file.
+
+Use `bun run storage:start` and `bun run storage:stop` to manage SeaweedFS on its own.
+
 ## Database Setup
 
 This project uses PostgreSQL with Drizzle ORM.
