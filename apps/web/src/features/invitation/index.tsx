@@ -2,9 +2,8 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { CandidateWorkspace } from "@/features/interview/candidate";
-import { startWarmup } from "@/features/interview/server";
-import type { InvitationData } from "@/features/interview/server";
+import { CandidateWorkspace, startWarmup } from "@/features/interview";
+import type { InvitationData } from "@/features/interview";
 
 const Joining = ({ inviteId }: { inviteId: string }) => {
   const router = useRouter();

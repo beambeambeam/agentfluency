@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { getInvitation } from "@/features/interview/server";
+import { getInvitation } from "@/features/interview";
 import { Invitation } from "@/features/invitation";
 import { getUser } from "@/functions/get-user";
 

@@ -3,7 +3,9 @@ import { Link } from "@tanstack/react-router";
 import { InterviewerWorkspace } from "./interviewer";
 import type { InterviewData } from "./server";
 
-export { getInterview } from "./server";
+export { CandidateWorkspace } from "./candidate";
+export { getInterview, getInvitation, startWarmup } from "./server";
+export type { InvitationData } from "./server";
 
 export const Interview = ({ data }: { data: InterviewData }) => {
   if (data.role === "interviewer") {
