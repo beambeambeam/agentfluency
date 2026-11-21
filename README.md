@@ -1,160 +1,96 @@
 # AgentFluency
 
-In AgentFluency, candidates use AI to complete realistic work and verify the AI's output. Interviewers assess the candidates' work and the evidence behind it. The planned prototype covers two job roles. Customer Support comes first, with a missing-payout ticket. Software Engineering comes second, with an export bug that drops valid zeros.
+**A hiring assessment for working with AI.** Candidates complete a timed work sample, check the assistant's claims against source files, and submit a recommendation. Interviewers use the submitted work and selected session evidence to judge how the candidate arrived at their answer.
 
-The current demo uses a business analyst's revenue-decline investigation to exercise the shared workbench, files, assistant chat, and submission flow. The two planned simulations and their reviewer reports are still to build. See the [prototype scope and completion criteria](docs/architecture.md#planned-two-role-prototype). To try the current demo locally as both an interviewer and a candidate, follow the [demo walkthrough](docs/demo.md).
+[Try the app](https://agentfluency.thisisbeam.fyi/) · [Run the demo locally](docs/demo.md) · [Explore the architecture](docs/architecture.md)
 
-## Features
+<img src="docs/assets/agentfluency-cover.webp" alt="AgentFluency artwork featuring the project mascot and the text ‘An IQ too high?’" width="620">
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - UI primitives live in the web app
-- **oRPC** - End-to-end type-safe APIs with OpenAPI integration
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Vite+** - Unified Vite toolchain, workspace task runner, linting, and formatting
+## What it does
 
-## Getting Started
+Traditional interviews give hiring teams limited visibility into how candidates handle an AI-generated answer on the job. AgentFluency makes verification part of the work sample.
 
-Install dependencies using the Bun version in [package.json](package.json). CI uses Node.js 26 for the Vite+ tooling.
+| Stage | What happens |
+| --- | --- |
+| **Configure** | The interviewer sets the task, adds source files, orders the steps, and chooses the model, permissions, and evidence to collect. |
+| **Invite** | A link or QR code opens a session assigned to the candidate's email. The session keeps a snapshot of its assessment settings. |
+| **Complete** | The candidate works in a timed browser workspace with a file viewer and an AI assistant. The interviewer can also enable a scratchpad and sandboxed Python. |
+| **Review** | The interviewer opens a report with the submission, timing, and selected activity. The report can include the chat transcript when recording is enabled. |
 
-```bash
-bun install
-```
+AgentFluency was built for the **Sea × OpenAI Regional Codex Hackathon Thailand** under **AI-Native Products & Operations**. The current demo uses a business analysis task. Customer Support and Software Engineering scenarios are [planned](docs/architecture.md#planned-two-role-prototype).
 
-## Local Docker services
+## Demo scenario
 
-Run both services in one Compose project:
+The candidate investigates why revenue fell from **$100,000 in April** to **$80,000 in May**. The sales file shows **1,000 orders in each month** and a drop in average order value from **$100 to $80**. The candidate uses the assistant, verifies the numbers against `data/sales.csv`, and submits a recommendation. The interviewer opens **Sessions → Review** to inspect the result.
 
-```bash
+## Run locally
+
+### Prerequisites
+
+- Bun **1.4.4**, as pinned in [`package.json`](package.json). CI uses Node.js **26** for the Vite+ toolchain.
+- Docker with Compose, or an existing PostgreSQL instance.
+- A server-side OpenAI API key from a project with billing and access to Responses and Containers for the timed interview demo.
+
+### 1. Install dependencies and start PostgreSQL
+
+```sh
+git clone https://github.com/beambeambeam/agentfluency.git
+cd agentfluency
+bun install --frozen-lockfile
 bun run infra:start
 ```
 
-Expand `agentfluency` in Docker Desktop's Containers view to see Postgres and SeaweedFS. Both services bind to loopback and store data in named volumes. If port `5432` is already in use, run `POSTGRES_PORT=5433 bun run infra:start` and use port `5433` in `DATABASE_URL`.
+The [Compose stack](packages/docker/docker-compose.yml) starts PostgreSQL and SeaweedFS on loopback. With an existing PostgreSQL instance, skip `infra:start` and use that instance's connection URL below.
 
-### Local S3
+### 2. Configure the app
 
-The S3 endpoint is `http://127.0.0.1:8333`. SeaweedFS creates the private `agentfluency-assets` bucket on startup. Compose reads the disposable defaults from [`packages/docker/.env.example`](packages/docker/.env.example). To override them, copy the template to `packages/docker/.env` and edit that ignored file.
+Create `apps/web/.env` with these values. The database URL uses the disposable credentials from the local Compose setup.
 
-Use `bun run storage:start` and `bun run storage:stop` to manage SeaweedFS on its own.
-
-### Shared S3 package
-
-Add `"@agentfluency/s3": "workspace:*"` to the consuming package and create one client per bucket in server code. Pass configuration from the consuming app. On AWS, use the SDK's default credential provider chain. For SeaweedFS, pass `endpoint: "http://127.0.0.1:8333"`, `forcePathStyle: true`, and explicit local credentials matching the Docker config.
-
-```ts
-import { createS3Storage } from "@agentfluency/s3";
-
-const storage = createS3Storage({
-  bucket: "my-assets-bucket",
-  region: "us-east-1",
-});
-const key = "uploads/file.txt";
-
-await storage.putObject({
-  Key: key,
-  Body: "Hello World!",
-  ContentType: "text/plain",
-});
-const url = await storage.getDownloadUrl(key, { expiresIn: 60 });
+```dotenv
+BETTER_AUTH_URL=http://localhost:3001
+BETTER_AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
+DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/agentfluency
+OPENAI_API_KEY=replace-with-your-server-side-api-key
 ```
 
-Download URLs expire after five minutes by default. Anyone with the URL can use it until it expires, so authorize the download before signing and keep signed URLs out of logs.
+See the [environment schema](apps/web/.env.schema) for validation rules. Keep local values in the ignored env file. If PostgreSQL uses a different port, update `DATABASE_URL` to match.
 
-## Database Setup
+### 3. Apply migrations and run the app
 
-This project uses PostgreSQL with Drizzle ORM.
-
-1. Make sure you have a PostgreSQL database set up.
-2. Set `DATABASE_URL` in `apps/web/.env` and provide the Better Auth origin and secret as described in the [demo walkthrough](docs/demo.md).
-
-3. Apply the schema to your database:
-
-```bash
+```sh
 bun run db:migrate
+bun run dev:web
 ```
 
-Then, run the development server:
+Open [localhost:3001](http://localhost:3001). Follow the [demo walkthrough](docs/demo.md) to set up an interviewer account, send a candidate invitation, and review a submission.
 
-```bash
-bun run dev
-```
+## Development
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
+| Command | Purpose |
+| --- | --- |
+| `bun run check` | Check formatting, lint, and TypeScript across the workspace. |
+| `bun run test run` | Run the test suite once. Use `bun run test watch` while editing. |
+| `bun run build` | Build the workspace. |
+| `bun run hooks:setup` | Enable Vite+ checks for staged files before committing. |
+| `bun run env:generate` | Regenerate Varlock types after editing an environment schema. |
+| `bun run auth:generate` | Regenerate the Better Auth schema after changing auth options or plugins. |
 
-## UI Customization
+Use `bun run db:generate --name <change>` from `packages/db` after changing the schema and commit the generated SQL and snapshot. The production workflow runs migrations before deploying the Worker, so keep migrations compatible with the currently deployed build.
 
-Edit design tokens and global styles in `apps/web/src/index.css`. Import primitives from `@/components/ui` and run the shadcn CLI from `apps/web` to add components.
+### Repository map
 
-## Environment Configuration
+| Path | Owns |
+| --- | --- |
+| [`apps/web`](apps/web) | React and TanStack Start app, with the interview studio, candidate workspace, report, and OpenAI assistant integration. |
+| [`packages/db`](packages/db) | PostgreSQL queries, Drizzle schemas, and migrations. |
+| [`packages/auth`](packages/auth) | Shared Better Auth setup. |
+| [`packages/api`](packages/api) and [`packages/config`](packages/config) | Shared oRPC endpoints and workspace configuration. |
+| [`packages/docker`](packages/docker) and [`packages/s3`](packages/s3) | Local infrastructure and shared S3 client. |
 
-Each app owns its environment schema in `.env.schema`. Varlock generates `src/env.ts` during installation; run `bun run env:generate` after changing a schema. Commit schemas, and keep secrets in ignored env files or your deployment platform.
+SeaweedFS exposes a local S3 endpoint at `http://127.0.0.1:8333` and provisions the private `agentfluency-assets` bucket. See the [local storage configuration](packages/docker/.env.example). Use `bun run storage:start` and `bun run storage:stop` to manage SeaweedFS separately.
 
-Import the generated `ENV` accessor in application code. Shared database and auth packages receive configuration or initialized clients from the application. See [Varlock's monorepo guide](https://varlock.dev/guides/monorepos/).
+## Deployment
 
-Bun's automatic env loading is disabled in `bunfig.toml`; the framework integration or server bootstrap loads Varlock. Node deployments must include Varlock and its dependencies alongside the app schema.
+[GitHub Actions](.github/workflows/ci.yml) verifies migrations, formatting, lint, types, the Worker build, and tests. On a verified push to `main`, the production job migrates PostgreSQL and deploys the app to Cloudflare Workers.
 
-Run standalone Node/Bun tools that use Varlock from the owning app directory so they load that app's schema and env files. `env:generate` only generates TypeScript files; it does not initialize environment values in a subsequent command.
-
-## Git Hooks and Formatting
-
-Vite+ runs its bundled Oxlint and Oxfmt using the Ultracite presets in `vite.config.ts`.
-
-- Run `bun run hooks:setup` after installing dependencies to enable the Vite+ pre-commit hook. It runs `bun run staged` against staged files.
-- Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
-- Run checks: `bun run check`
-
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks database migrations, formatting, lint, types, the Worker build, and tests on pull requests, merge queues, and pushes to `main`. Verification needs no production secrets.
-
-## Production Deployment
-
-Successful pushes to `main` deploy the verified build to [agentfluency.thisisbeam.fyi](https://agentfluency.thisisbeam.fyi) with `cf deploy`. The [Worker configuration](apps/web/cloudflare.config.ts) sets the custom domain and Better Auth origin.
-
-The GitHub Actions `production` environment allows deployments from `main`. `cf deploy` uses the `CLOUDFLARE_ACCOUNT_ID` variable and `CLOUDFLARE_API_TOKEN` secret. The deploy step passes `BETTER_AUTH_SECRET`, `DATABASE_URL`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` as Worker runtime secrets.
-
-Set `OPENAI_API_KEY` in that environment before running a live interview. The same OpenAI project key authorizes Responses streaming and the session container. Follow the [interview walkthrough](docs/demo.md) to verify the deployed flow.
-
-Use a PostgreSQL endpoint reachable from both GitHub Actions and Cloudflare Workers. The production job applies committed Drizzle migrations using `DATABASE_URL` before publishing the Worker. A migration failure stops the deployment. Pull requests test the migrations against a disposable PostgreSQL instance.
-
-After editing the database schema, run `bun run db:generate --name <change>` from `packages/db` and commit the generated SQL and snapshot. Keep schema changes compatible with the currently deployed Worker because migrations run before the new Worker is published.
-
-## Testing
-
-Run `bun run test` from the repository root. Use `bun run test watch` while editing. Vite+ provides Vitest. Import `test` and `expect` explicitly from `vite-plus/test`. Use `test()` for each case, including inside `describe()`.
-
-Keep web feature tests in `__tests__/index.ts` or `__tests__/index.tsx` inside the feature folder. Elsewhere, use `*.test.ts` or `*.test.tsx`. Tests run in Node by default. Add `// @vitest-environment jsdom` at the top of React tests that need the DOM. With explicit Vitest imports, register React Testing Library's `cleanup` with `afterEach`.
-
-## Project Structure
-
-```
-agentfluency/
-├── apps/
-│   └── web/         # Fullstack application (React + TanStack Start)
-├── packages/
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
-```
-
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate Drizzle migration SQL and snapshots
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Vite+ format/lint checks and workspace TypeScript checks
-- `bun fix`: Format files and apply safe lint fixes
-- `bun run lint`: Run Vite+ lint checks
-- `bun run format`: Run Vite+ formatting
-- `bun run staged`: Run Vite+ checks against staged files
-- `bun run hooks:setup`: Enable the Vite+ Git hook dispatcher
-
-## Better Auth Schema Generation
-
-After changing auth plugins or schema options, run `bun run auth:generate` from the project root. The script runs the Better Auth CLI through `varlock run` from the owning app directory, loading the auth instance from `src/auth.config.ts`. Review the schema changes, then use your ORM's migration workflow to apply them.
+Use the GitHub Actions `production` environment for the Cloudflare credentials and Worker secrets referenced in the [workflow](.github/workflows/ci.yml). Set `OPENAI_API_KEY` there to run live interviews. PostgreSQL must be reachable from both GitHub Actions and the Worker. See the [Worker configuration](apps/web/cloudflare.config.ts) for the production domain and authentication origin.
