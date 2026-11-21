@@ -59,6 +59,8 @@ Run standalone Node/Bun tools that use Varlock from the owning app directory so 
 
 ## Git Hooks and Formatting
 
+Vite+ runs its bundled Oxlint and Oxfmt using the Ultracite presets in `vite.config.ts`.
+
 - Optional native Vite+ hooks: `bun run hooks:setup`
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
@@ -86,6 +88,7 @@ agentfluency/
 - `bun run db:migrate`: Run database migrations
 - `bun run db:studio`: Open database studio UI
 - `bun run check`: Run Vite+ format/lint checks and workspace TypeScript checks
+- `bun fix`: Format files and apply safe lint fixes
 - `bun run lint`: Run Vite+ lint checks
 - `bun run format`: Run Vite+ formatting
 - `bun run staged`: Run Vite+ checks against staged files

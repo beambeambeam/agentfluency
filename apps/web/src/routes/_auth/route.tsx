@@ -3,7 +3,7 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { getUser } from "@/functions/get-user";
 
 export const Route = createFileRoute("/_auth")({
-  component: AuthLayout,
+  component: () => <Outlet />,
   beforeLoad: async () => {
     const session = await getUser();
     if (!session) {
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_auth")({
     }
     return { session };
   },
-  loader: async ({ context }) => {
+  loader: ({ context }) => {
     if (!context.session) {
       throw redirect({
         to: "/login",
@@ -21,7 +21,3 @@ export const Route = createFileRoute("/_auth")({
     }
   },
 });
-
-function AuthLayout() {
-  return <Outlet />;
-}
