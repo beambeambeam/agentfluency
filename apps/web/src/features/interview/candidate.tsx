@@ -22,7 +22,11 @@ import type { WorkspaceTab } from "./editor-tabs";
 import { FileExplorer, getFileKind } from "./file-explorer";
 import type { WorkspaceFile } from "./file-explorer";
 import type { SessionMetric } from "./session-config";
-import { recordInterviewActivity, submitInterviewSession } from "./sessions";
+import {
+  keepInterviewSandboxAlive,
+  recordInterviewActivity,
+  submitInterviewSession,
+} from "./sessions";
 import { SourcePreview } from "./source-preview";
 import { WorkbenchSplit } from "./workbench-split";
 
@@ -192,6 +196,18 @@ export const CandidateWorkspace = ({
     }, 1000);
     return () => window.clearInterval(timer);
   }, [endsAt, onComplete]);
+
+  useEffect(() => {
+    // OpenAI uses a 20-minute idle expiry. Keep the same container while the interview is open.
+    const timer = window.setInterval(() => {
+      if (Date.now() >= Date.parse(endsAt)) {
+        window.clearInterval(timer);
+        return;
+      }
+      void keepInterviewSandboxAlive({ data: sessionId }).catch(() => null);
+    }, 8 * 60_000);
+    return () => window.clearInterval(timer);
+  }, [endsAt, sessionId]);
 
   useEffect(() => {
     if (metrics.includes("steps") && step) {

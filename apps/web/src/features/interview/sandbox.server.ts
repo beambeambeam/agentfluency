@@ -6,6 +6,37 @@ import { z } from "zod";
 import type { AssessmentConfig } from "./config";
 
 const containerIdSchema = z.string().regex(/^cntr_[\w-]+$/u);
+const requestIdSchema = z.string().regex(/^req_[a-f\d]{8,64}$/iu);
+const providerErrorSchema = z.object({
+  error: z.object({
+    param: z
+      .enum([
+        "expires_after",
+        "expires_after.anchor",
+        "expires_after.minutes",
+        "file",
+        "file_id",
+        "memory_limit",
+        "name",
+        "network_policy",
+      ])
+      .nullish()
+      .catch(null),
+    code: z
+      .enum([
+        "billing_hard_limit_reached",
+        "insufficient_quota",
+        "invalid_api_key",
+        "invalid_value",
+        "missing_required_parameter",
+        "rate_limit_exceeded",
+        "unknown_parameter",
+        "unsupported_value",
+      ])
+      .nullish()
+      .catch(null),
+  }),
+});
 
 export const createSessionInterpreter = (id: string) => {
   const container = containerIdSchema.parse(id);
@@ -16,6 +47,7 @@ export const createSessionInterpreter = (id: string) => {
 
 const openAiRequest = async (
   apiKey: string,
+  operation: "create" | "upload" | "refresh" | "delete",
   path: string,
   options: RequestInit
 ) => {
@@ -27,7 +59,22 @@ const openAiRequest = async (
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
-    throw new Error(`OpenAI sandbox request failed (${response.status}).`);
+    const providerError = providerErrorSchema.safeParse(
+      await response.json().catch(() => null)
+    ).data?.error;
+    const requestId = requestIdSchema.safeParse(
+      response.headers.get("x-request-id")
+    ).data;
+    console.error("OpenAI sandbox request failed", {
+      operation,
+      status: response.status,
+      requestId,
+      parameter: providerError?.param,
+      code: providerError?.code,
+    });
+    throw new Error(
+      `OpenAI sandbox ${operation} failed (${response.status}).${requestId ? ` Request ID ${requestId}.` : ""}`
+    );
   }
   return response;
 };
@@ -66,25 +113,25 @@ const archiveWorkspace = (files: AssessmentConfig["files"]) => {
 };
 
 export const releaseSandbox = (apiKey: string, id: string) =>
-  openAiRequest(apiKey, `/${containerIdSchema.parse(id)}`, {
+  openAiRequest(apiKey, "delete", `/${containerIdSchema.parse(id)}`, {
     method: "DELETE",
+  });
+
+export const refreshSandbox = (apiKey: string, id: string) =>
+  openAiRequest(apiKey, "refresh", `/${containerIdSchema.parse(id)}`, {
+    method: "GET",
   });
 
 export const provisionSandbox = async (
   apiKey: string,
   sessionId: string,
-  files: AssessmentConfig["files"],
-  minutesRemaining: number
+  files: AssessmentConfig["files"]
 ) => {
-  const response = await openAiRequest(apiKey, "", {
+  const response = await openAiRequest(apiKey, "create", "", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: `agentfluency-${sessionId}`,
-      expires_after: {
-        anchor: "last_active_at",
-        minutes: minutesRemaining + 5,
-      },
       network_policy: { type: "disabled" },
     }),
   });
@@ -98,7 +145,10 @@ export const provisionSandbox = async (
       new Blob([archiveWorkspace(files)], { type: "application/x-tar" }),
       "workspace.tar"
     );
-    await openAiRequest(apiKey, `/${id}/files`, { method: "POST", body: form });
+    await openAiRequest(apiKey, "upload", `/${id}/files`, {
+      method: "POST",
+      body: form,
+    });
     return id;
   } catch (error) {
     await releaseSandbox(apiKey, id).catch(() => null);
