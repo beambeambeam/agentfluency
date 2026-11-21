@@ -30,7 +30,7 @@ const RootDocument = () => (
         <Header />
         <Outlet />
       </div>
-      <Toaster richColors />
+      <Toaster richColors theme="dark" />
       <TanStackRouterDevtools position="bottom-left" />
       <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
       <Scripts />

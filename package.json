@@ -11,7 +11,6 @@
       "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
       "typescript": "^6.0.3",
       "varlock": "1.25.0",
-      "lucide-react": "^1.72.0",
       "next-themes": "^0.4.6",
       "react": "^19.3.1",
       "react-dom": "^19.3.1",
