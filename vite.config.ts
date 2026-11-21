@@ -3,10 +3,20 @@ import core from "ultracite/oxlint/core";
 import react from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import { defineConfig } from "vite-plus";
+import { configDefaults } from "vite-plus/test/config";
 
 const toolOutput = ["apps/web/.tanstack/**", "apps/web/.vinxi/**"];
 
 export default defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
+  test: {
+    include: [
+      ...configDefaults.include,
+      "apps/web/src/features/**/test.{ts,tsx}",
+    ],
+  },
   lint: {
     env: core.env,
     extends: [core, react, tanstack],
