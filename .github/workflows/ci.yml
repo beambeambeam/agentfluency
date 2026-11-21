@@ -106,6 +106,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AWS_ENDPOINT_URL_S3: ${{ secrets.AWS_ENDPOINT_URL_S3 }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -136,6 +137,9 @@ jobs:
             if (!value) throw new Error(`Set the production ${key} secret`);
             return [key, value];
           }));
+          if (process.env.OPENAI_API_KEY) {
+            secrets.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+          }
           process.stdout.write(JSON.stringify(secrets));
           JS
           npx --no-install cf deploy --prebuilt --mode production --secrets-file "$secrets_file"

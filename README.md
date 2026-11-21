@@ -82,6 +82,17 @@ bun run dev
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
 
+### Try authentication and the AI assistant
+
+Open the sign-in page and use **Sign Up** to create an interviewer account.
+After signing in, the dashboard shows the AI assistant. Add an
+`OPENAI_API_KEY` to `apps/web/.env` and restart the app to enable streaming
+replies. The server selects the model and keeps the API key private. The chat
+history lives in the open dashboard and is cleared by **New chat** or a reload.
+
+Use the account menu to sign out. Visiting the dashboard while signed out
+redirects to sign-in.
+
 ## UI Customization
 
 Edit design tokens and global styles in `apps/web/src/index.css`. Import primitives from `@/components/ui` and run the shadcn CLI from `apps/web` to add components.
@@ -111,6 +122,8 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, li
 Successful pushes to `main` deploy the verified build to [agentfluency.thisisbeam.fyi](https://agentfluency.thisisbeam.fyi) with `cf deploy`. The [Worker configuration](apps/web/cloudflare.config.ts) sets the custom domain and Better Auth origin.
 
 The GitHub Actions `production` environment allows deployments from `main`. `cf deploy` uses the `CLOUDFLARE_ACCOUNT_ID` variable and `CLOUDFLARE_API_TOKEN` secret. The deploy step passes `BETTER_AUTH_SECRET`, `DATABASE_URL`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` as Worker runtime secrets.
+
+Set the optional `OPENAI_API_KEY` secret in that environment to enable the dashboard assistant on the next deploy.
 
 Use a PostgreSQL endpoint reachable from Cloudflare Workers. Apply the schema to a new production database before deploying. Run `bun run db:push` from `packages/db` with the production `DATABASE_URL` set in the command environment.
 
