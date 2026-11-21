@@ -2,7 +2,6 @@ import {
   ArrowRight01Icon,
   Attachment01Icon,
   CheckmarkCircle02Icon,
-  Folder01Icon,
   FullScreenIcon,
   LockKeyIcon,
   MinimizeScreenIcon,
@@ -11,17 +10,19 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AssistantChat } from "@/features/assistant-chat";
 
 import { sandboxes } from "./config";
+import type { AssessmentConfig } from "./config";
 import { EditorTabs } from "./editor-tabs";
 import type { WorkspaceTab } from "./editor-tabs";
 import { FileExplorer, getFileKind } from "./file-explorer";
 import type { WorkspaceFile } from "./file-explorer";
-import { submitInterview } from "./server";
-import type { InvitationData } from "./server";
+import type { SessionMetric } from "./session-config";
+import { recordInterviewActivity, submitInterviewSession } from "./sessions";
 import { SourcePreview } from "./source-preview";
 import { WorkbenchSplit } from "./workbench-split";
 
@@ -101,6 +102,7 @@ const FullscreenButton = () => {
   const [available, setAvailable] = useState(true);
   useEffect(() => {
     const update = () => setFullscreen(Boolean(document.fullscreenElement));
+    update();
     document.addEventListener("fullscreenchange", update);
     return () => document.removeEventListener("fullscreenchange", update);
   }, []);
@@ -133,15 +135,25 @@ const FullscreenButton = () => {
 };
 
 export const CandidateWorkspace = ({
-  inviteId,
-  assistantMode,
   config,
-  submission,
-}: Extract<InvitationData, { stage: "assessment" }> & { inviteId: string }) => {
+  sessionId,
+  endsAt,
+  metrics,
+  onComplete,
+}: {
+  config: AssessmentConfig;
+  sessionId: string;
+  endsAt: string;
+  metrics: SessionMetric[];
+  onComplete: () => void;
+}) => {
   const [initialFile] = config.files;
   const hasScratchpad = config.sandbox === "scratchpad";
   const initialTab = initialFile && fileTab(initialFile.path);
   const [stepIndex, setStepIndex] = useState(0);
+  const [furthestStep, setFurthestStep] = useState(0);
+  const [showProblem, setShowProblem] = useState(true);
+  const [remaining, setRemaining] = useState<number>();
   const [tabOrder, setTabOrder] = useState(() =>
     [initialTab, hasScratchpad ? scratchpadTab : undefined].filter(
       (id): id is string => id !== undefined
@@ -150,11 +162,9 @@ export const CandidateWorkspace = ({
   const [activeTab, setActiveTab] = useState<string | undefined>(initialTab);
   const [attachment, setAttachment] = useState<WorkspaceFile>();
   const [scratchpad, setScratchpad] = useState("");
-  const [response, setResponse] = useState(submission);
+  const [response, setResponse] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState(
-    submission ? "Recommendation submitted." : ""
-  );
+  const [status, setStatus] = useState("");
   const step = config.steps[stepIndex];
   const lastStep = stepIndex === config.steps.length - 1;
   const files = new Map(config.files.map((item) => [fileTab(item.path), item]));
@@ -168,7 +178,45 @@ export const CandidateWorkspace = ({
     return opened ? [{ id, file: opened }] : [];
   });
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const seconds = Math.max(
+        0,
+        Math.ceil((Date.parse(endsAt) - Date.now()) / 1000)
+      );
+      setRemaining(seconds);
+      if (seconds === 0) {
+        window.clearInterval(timer);
+        onComplete();
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [endsAt, onComplete]);
+
+  useEffect(() => {
+    if (metrics.includes("steps") && step) {
+      void recordInterviewActivity({
+        data: { id: sessionId, kind: "step", itemId: step.id },
+      }).catch(() => null);
+    }
+  }, [metrics, sessionId, step]);
+
+  const recordFile = (selected: WorkspaceFile, kind: "file" | "attachment") => {
+    if (metrics.includes("files")) {
+      void recordInterviewActivity({
+        data: { id: sessionId, kind, itemId: selected.id },
+      }).catch(() => null);
+    }
+  };
+
+  const navigateToStep = (index: number) => {
+    setStepIndex(index);
+    setFurthestStep((furthest) => Math.max(furthest, index));
+    setShowProblem(true);
+  };
+
   const openFile = (selected: WorkspaceFile) => {
+    recordFile(selected, "file");
     const id = fileTab(selected.path);
     setTabOrder((order) => {
       if (order.includes(id)) {
@@ -197,18 +245,18 @@ export const CandidateWorkspace = ({
       if (!order.includes(id) || !order.includes(target)) {
         return order;
       }
-      const remaining = order.filter((tab) => tab !== id);
-      const position = remaining.indexOf(target) + Number(after);
-      remaining.splice(position, 0, id);
-      return remaining;
+      const otherTabs = order.filter((tab) => tab !== id);
+      const position = otherTabs.indexOf(target) + Number(after);
+      otherTabs.splice(position, 0, id);
+      return otherTabs;
     });
   };
 
   const submit = async () => {
     setIsSubmitting(true);
     try {
-      await submitInterview({ data: { inviteId, response } });
-      setStatus("Recommendation submitted.");
+      await submitInterviewSession({ data: { id: sessionId, response } });
+      onComplete();
     } catch {
       setStatus("Could not submit. Try again.");
     }
@@ -218,9 +266,7 @@ export const CandidateWorkspace = ({
   return (
     <main className="candidate-workbench">
       <header className="wb-heading">
-        <span className="wb-project-icon">
-          <HugeiconsIcon icon={Folder01Icon} size={21} aria-hidden="true" />
-        </span>
+        <BrandLogo compact />
         <div className="wb-project">
           <h1 title={config.workspace}>{config.workspace}</h1>
           <p title={config.title}>{config.title}</p>
@@ -229,6 +275,23 @@ export const CandidateWorkspace = ({
           <HugeiconsIcon icon={LockKeyIcon} size={14} aria-hidden="true" />
           <span>{sandboxes[config.sandbox]}</span>
         </span>
+        <span className="wb-sandbox tabular-nums" aria-label="Time remaining">
+          {remaining === undefined
+            ? "—:—"
+            : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="wb-problem-toggle"
+          aria-expanded={showProblem}
+          aria-controls="interview-problem"
+          onClick={() => setShowProblem((shown) => !shown)}
+        >
+          <HugeiconsIcon icon={Task01Icon} aria-hidden="true" />
+          <span>{showProblem ? "Hide problem" : "View problem"}</span>
+        </Button>
         <FullscreenButton />
       </header>
 
@@ -253,7 +316,8 @@ export const CandidateWorkspace = ({
                     size="sm"
                     type="button"
                     aria-current={index === stepIndex ? "step" : undefined}
-                    onClick={() => setStepIndex(index)}
+                    disabled={index > furthestStep}
+                    onClick={() => navigateToStep(index)}
                   >
                     {index < stepIndex ? (
                       <HugeiconsIcon
@@ -304,12 +368,21 @@ export const CandidateWorkspace = ({
                   file={file}
                   attached={Boolean(file && attachment?.path === file.path)}
                   attachFile={
-                    config.allowFileAttachments ? setAttachment : undefined
+                    config.allowFileAttachments
+                      ? (selected) => {
+                          setAttachment(selected);
+                          recordFile(selected, "attachment");
+                        }
+                      : undefined
                   }
                 />
               )}
 
-              <div className="wb-task">
+              <div
+                id="interview-problem"
+                className="wb-task"
+                hidden={!showProblem}
+              >
                 <div className="wb-task-heading">
                   <HugeiconsIcon
                     icon={Task01Icon}
@@ -332,7 +405,7 @@ export const CandidateWorkspace = ({
                     }}
                   >
                     <label htmlFor="workspace-recommendation">
-                      Your recommendation
+                      Your submission
                     </label>
                     <Textarea
                       id="workspace-recommendation"
@@ -353,7 +426,7 @@ export const CandidateWorkspace = ({
                         icon={CheckmarkCircle02Icon}
                         aria-hidden="true"
                       />
-                      {isSubmitting ? "Submitting…" : "Submit recommendation"}
+                      {isSubmitting ? "Submitting…" : "Submit interview"}
                     </Button>
                     {status && <output>{status}</output>}
                   </form>
@@ -363,7 +436,7 @@ export const CandidateWorkspace = ({
                     size="sm"
                     className="wb-next"
                     type="button"
-                    onClick={() => setStepIndex(stepIndex + 1)}
+                    onClick={() => navigateToStep(stepIndex + 1)}
                   >
                     Next step{" "}
                     <HugeiconsIcon
@@ -378,12 +451,12 @@ export const CandidateWorkspace = ({
           }
           assistant={
             <AssistantChat
-              inviteId={inviteId}
               initialHarness={config.harness}
               initialModel={config.model}
               allowHarnessSelection={config.allowHarnessSelection}
               allowModelSelection={config.allowModelSelection}
-              mode={assistantMode}
+              mode="live"
+              sessionId={sessionId}
               attachment={attachment}
               onClearAttachment={() => setAttachment(undefined)}
             />

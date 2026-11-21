@@ -4,6 +4,7 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  useRouterState,
 } from "@tanstack/react-router";
 import { ThemeProvider } from "next-themes";
 
@@ -19,6 +20,22 @@ export interface RouterAppContext {
   queryClient: QueryClient;
 }
 
+const AppShell = () => {
+  const interview = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/interview/"),
+  });
+  return interview ? (
+    <div className="grid h-svh grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]">
+      <Outlet />
+    </div>
+  ) : (
+    <div className="grid h-svh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+      <Header />
+      <Outlet />
+    </div>
+  );
+};
+
 const RootDocument = () => (
   <html lang="en" suppressHydrationWarning>
     <head>
@@ -26,10 +43,7 @@ const RootDocument = () => (
     </head>
     <body>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-        <div className="grid h-svh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
-          <Header />
-          <Outlet />
-        </div>
+        <AppShell />
         <Toaster richColors />
       </ThemeProvider>
       <Scripts />
@@ -52,15 +66,27 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
     links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "icon",
+        href: "/statics/logo/agf-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        rel: "icon",
+        href: "/statics/logo/agf-light.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
+      },
+      { rel: "preconnect", href: "https://api.fontshare.com" },
       {
         rel: "preconnect",
-        href: "https://fonts.gstatic.com",
+        href: "https://cdn.fontshare.com",
         crossOrigin: "anonymous",
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=K2D:wght@400;500;600;700&display=swap",
+        href: "https://api.fontshare.com/v2/css?f%5B%5D=chillax@1&display=swap",
       },
       {
         rel: "stylesheet",

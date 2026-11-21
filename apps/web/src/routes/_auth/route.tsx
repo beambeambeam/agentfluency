@@ -11,6 +11,9 @@ export const Route = createFileRoute("/_auth")({
         to: "/login",
       });
     }
+    if (session.user.role !== "interviewer") {
+      throw redirect({ to: "/" });
+    }
     return { session };
   },
   loader: ({ context }) => {

@@ -10,11 +10,11 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
 export default function SignUpForm({
-  invite,
   onSwitchToSignIn,
+  invite,
 }: {
-  invite?: string;
   onSwitchToSignIn: () => void;
+  invite?: string;
 }) {
   const navigate = useNavigate({
     from: "/",
@@ -36,15 +36,11 @@ export default function SignUpForm({
         },
         {
           onSuccess: () => {
-            navigate(
-              invite
-                ? {
-                    to: "/invite/$inviteId",
-                    params: { inviteId: invite },
-                    reloadDocument: true,
-                  }
-                : { to: "/dashboard" }
-            );
+            if (invite) {
+              void navigate({ to: "/interview/$invite", params: { invite } });
+            } else {
+              void navigate({ to: "/" });
+            }
             toast.success("Sign up successful");
           },
           onError: (error) => {

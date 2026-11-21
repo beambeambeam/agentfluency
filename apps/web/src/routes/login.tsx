@@ -2,10 +2,10 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { z } from "zod";
 
 import { DitherArtwork } from "@/components/dither-artwork";
 import { buttonVariants } from "@/components/ui/button";
+import { inviteSchema } from "@/features/interview/session-config";
 import SignInForm from "@/features/sign-in";
 import SignUpForm from "@/features/sign-up";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,9 @@ const Login = () => {
 };
 
 export const Route = createFileRoute("/login")({
-  validateSearch: z.object({ invite: z.uuid().optional().catch(undefined) }),
+  validateSearch: (search: Record<string, unknown>): { invite?: string } => ({
+    invite: inviteSchema.safeParse(search.invite).data,
+  }),
+  head: () => ({ meta: [{ name: "referrer", content: "no-referrer" }] }),
   component: Login,
 });

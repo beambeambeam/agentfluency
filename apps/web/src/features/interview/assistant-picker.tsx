@@ -134,20 +134,35 @@ const AssistantPicker = ({
   );
 };
 
-export const HarnessPicker = ({ onChange, ...props }: PickerProps<Harness>) => (
+export const HarnessPicker = ({
+  onChange,
+  ...props
+}: Omit<PickerProps<Harness>, "onChange"> & {
+  onChange?: (value: Harness) => void;
+}) => (
   <AssistantPicker
     {...props}
     label="Harness preset"
     choices={harnessChoices}
-    onChange={(id) => onChange(harnessSchema.parse(id))}
+    onChange={(id) => onChange?.(harnessSchema.parse(id))}
   />
 );
 
-export const ModelPicker = ({ onChange, ...props }: PickerProps<Model>) => (
+export const ModelPicker = ({
+  onChange,
+  supportedModels,
+  ...props
+}: PickerProps<Model> & { supportedModels?: readonly Model[] }) => (
   <AssistantPicker
     {...props}
     label="Model"
-    choices={modelChoices}
+    choices={
+      supportedModels
+        ? modelChoices.filter(({ id }) =>
+            supportedModels.some((model) => model === id)
+          )
+        : modelChoices
+    }
     onChange={(id) => onChange(modelSchema.parse(id))}
   />
 );
