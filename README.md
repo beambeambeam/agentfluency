@@ -38,6 +38,29 @@ The S3 endpoint is `http://127.0.0.1:8333`. SeaweedFS creates the private `agent
 
 Use `bun run storage:start` and `bun run storage:stop` to manage SeaweedFS on its own.
 
+### Shared S3 package
+
+Add `"@agentfluency/s3": "workspace:*"` to the consuming package and create one client per bucket in server code. Pass configuration from the consuming app. On AWS, use the SDK's default credential provider chain. For SeaweedFS, pass `endpoint: "http://127.0.0.1:8333"`, `forcePathStyle: true`, and explicit local credentials matching the Docker config.
+
+```ts
+import { createS3Storage } from "@agentfluency/s3";
+
+const storage = createS3Storage({
+  bucket: "my-assets-bucket",
+  region: "us-east-1",
+});
+const key = "uploads/file.txt";
+
+await storage.putObject({
+  Key: key,
+  Body: "Hello World!",
+  ContentType: "text/plain",
+});
+const url = await storage.getDownloadUrl(key, { expiresIn: 60 });
+```
+
+Download URLs expire after five minutes by default. Anyone with the URL can use it until it expires, so authorize the download before signing and keep signed URLs out of logs.
+
 ## Database Setup
 
 This project uses PostgreSQL with Drizzle ORM.
