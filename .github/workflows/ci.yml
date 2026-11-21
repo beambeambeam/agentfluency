@@ -21,6 +21,17 @@ jobs:
     name: Verify
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: agentfluency_ci
+          POSTGRES_USER: agentfluency
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentfluency -d agentfluency_ci" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,6 +48,14 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Verify database migrations
+        working-directory: packages/db
+        env:
+          DATABASE_URL: postgresql://agentfluency:ci-only@127.0.0.1:5432/agentfluency_ci
+        run: |
+          bun run db:migrate
+          bun run db:migrate
 
       - name: Check formatting
         run: bun run format --check
@@ -98,7 +117,7 @@ jobs:
           name: worker-build
           path: apps/web/.cloudflare/output
 
-      - name: Deploy Worker
+      - name: Migrate database and deploy Worker
         working-directory: apps/web
         shell: bash
         env:
@@ -142,6 +161,8 @@ jobs:
           }
           process.stdout.write(JSON.stringify(secrets));
           JS
+          (cd ../../packages/db && bun run db:migrate:deploy)
+
           npx --no-install cf deploy --prebuilt --mode production --secrets-file "$secrets_file"
 
           curl --fail --fail-early --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors \

@@ -29,6 +29,6 @@ The shared `packages/api` workspace still provides the starter oRPC health check
 
 ## Deployment status
 
-The [GitHub Actions workflow](../.github/workflows/ci.yml) verifies pull requests and deploys successful builds from `main` to Cloudflare Workers. CI currently handles application deployment. The demo schema was applied locally with Drizzle. Before merging a change that uses the new schema on an existing hosted database, apply the schema with the repository owner's rollout plan and verify the Worker can read it. Hosted migration automation and remote demo account provisioning are pending local demo sign-off.
+The [GitHub Actions workflow](../.github/workflows/ci.yml) verifies migrations against disposable PostgreSQL and deploys successful builds from `main` to Cloudflare Workers. The production job applies committed Drizzle migrations to the database in the `DATABASE_URL` secret before publishing the Worker. The initial migration supports both empty databases and databases with the original Better Auth tables. It adds the interview tables and defaults existing users to the candidate role. Demo accounts are provisioned separately.
 
 The [demo walkthrough](demo.md) covers setup, disposable accounts, and acceptance checks. Keep environment values and account passwords in local configuration or deployment secrets.
