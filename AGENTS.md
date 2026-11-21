@@ -1,0 +1,19 @@
+## Agent skills
+
+### Engineering workflow
+
+Start with [grill-with-docs](.agents/skills/grill-with-docs/SKILL.md) to resolve design questions, then use [to-spec](.agents/skills/to-spec/SKILL.md) to publish the spec and [to-tickets](.agents/skills/to-tickets/SKILL.md) to split it into tickets. Use [implement](.agents/skills/implement/SKILL.md) to build a ticket, [code-review](.agents/skills/code-review/SKILL.md) to review changes, and [retro](.agents/skills/retro/SKILL.md) to capture session improvements.
+
+When a workflow calls another skill, read that skill's `SKILL.md` under `.agents/skills/` and follow it.
+
+### Issue tracker
+
+Track specs and tickets in GitHub Issues for `beambeambeam/agentfluency`. See [issue-tracker.md](docs/agents/issue-tracker.md).
+
+### Triage labels
+
+Use the default triage labels. See [triage-labels.md](docs/agents/triage-labels.md).
+
+### Domain docs
+
+Use a single context with a root glossary and ADRs under `docs/adr/`. See [domain.md](docs/agents/domain.md).
