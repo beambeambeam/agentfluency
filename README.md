@@ -1,6 +1,8 @@
-# agentfluency
+# AgentFluency
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Self, ORPC, and more.
+AgentFluency helps interviewers assess how candidates use AI to complete realistic work across roles. The demo follows a business analyst investigating a revenue decline and lets the interviewer review the candidate's recommendation.
+
+Read the [architecture and demo handoff](docs/architecture.md) for the product boundaries and code map. Follow the [demo walkthrough](docs/demo.md) to try both roles locally.
 
 ## Features
 
@@ -16,7 +18,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 
 ## Getting Started
 
-First, install the dependencies:
+Install dependencies using the Bun version in [package.json](package.json). CI uses Node.js 26 for the Vite+ tooling.
 
 ```bash
 bun install
@@ -66,7 +68,7 @@ Download URLs expire after five minutes by default. Anyone with the URL can use 
 This project uses PostgreSQL with Drizzle ORM.
 
 1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
+2. Set `DATABASE_URL` in `apps/web/.env` and provide the Better Auth origin and secret as described in the [demo walkthrough](docs/demo.md).
 
 3. Apply the schema to your database:
 
@@ -111,6 +113,8 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, li
 Successful pushes to `main` deploy the verified build to [agentfluency.thisisbeam.fyi](https://agentfluency.thisisbeam.fyi) with `cf deploy`. The [Worker configuration](apps/web/cloudflare.config.ts) sets the custom domain and Better Auth origin.
 
 The GitHub Actions `production` environment allows deployments from `main`. `cf deploy` uses the `CLOUDFLARE_ACCOUNT_ID` variable and `CLOUDFLARE_API_TOKEN` secret. The deploy step passes `BETTER_AUTH_SECRET`, `DATABASE_URL`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` as Worker runtime secrets.
+
+Set the optional `OPENAI_API_KEY` secret in that environment to enable the dashboard assistant on the next deploy.
 
 Use a PostgreSQL endpoint reachable from Cloudflare Workers. Apply the schema to a new production database before deploying. Run `bun run db:push` from `packages/db` with the production `DATABASE_URL` set in the command environment.
 

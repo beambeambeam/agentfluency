@@ -5,7 +5,7 @@ import SignInForm from "@/features/sign-in";
 import SignUpForm from "@/features/sign-up";
 
 const Login = () => {
-  const [showSignIn, setShowSignIn] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(true);
 
   return showSignIn ? (
     <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />

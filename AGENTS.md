@@ -1,3 +1,8 @@
+## Product and architecture
+
+- **Interview changes**: Read [architecture and demo handoff](docs/architecture.md) before changing roles, the assessment flow, the workspace, assistant behavior, or deployment.
+- **Local verification**: Follow the [demo walkthrough](docs/demo.md) to create local test accounts and verify both roles.
+
 ## Linting and formatting
 
 - After changing code, run `bun run lint --fix`, then `bun run format` from the repository root.

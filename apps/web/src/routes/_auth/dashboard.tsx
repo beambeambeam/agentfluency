@@ -1,24 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 
-import { orpc } from "@/utils/orpc";
+import { getInterview, Interview } from "@/features/interview";
 
 const dashboardRoute = getRouteApi("/_auth/dashboard");
 
 const Dashboard = () => {
   const { session } = dashboardRoute.useRouteContext();
-
-  const privateData = useQuery(orpc.privateData.queryOptions());
-
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome {session?.user.name}</p>
-      <p>API: {privateData.data?.message}</p>
-    </div>
-  );
+  const data = dashboardRoute.useLoaderData();
+  return <Interview key={session.user.id} data={data} />;
 };
 
 export const Route = createFileRoute("/_auth/dashboard")({
+  loader: () => getInterview(),
   component: Dashboard,
 });
