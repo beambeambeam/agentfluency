@@ -1,12 +1,13 @@
 import type { Context as ApiContext } from "@agentfluency/api/context";
 
-import { db, auth } from "./services";
+import { createServices } from "./services";
 
 export const createContext = async ({
   req,
 }: {
   req: Request;
 }): Promise<ApiContext> => {
+  const { auth, db } = createServices();
   const session = await auth.api.getSession({
     headers: req.headers,
   });
