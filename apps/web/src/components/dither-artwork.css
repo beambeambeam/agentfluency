@@ -1,0 +1,41 @@
+.dither-plate {
+  --dither-paper: #f4f1fb;
+  --dither-violet: #a23dd0;
+  --dither-periwinkle: #5256c7;
+  --dither-seafoam: #168674;
+  background: var(--dither-paper);
+}
+
+.dark .dither-plate,
+.dither-plate-auth {
+  --dither-paper: #131022;
+  --dither-violet: #ed87ff;
+  --dither-periwinkle: #91a4ff;
+  --dither-seafoam: #70efc0;
+}
+
+.dither-artwork-fallback {
+  isolation: isolate;
+  background: var(--dither-paper);
+}
+
+.dither-artwork-fallback::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    var(--dither-violet),
+    var(--dither-periwinkle) 52%,
+    var(--dither-seafoam)
+  );
+  mask-image:
+    radial-gradient(ellipse 76% 30% at 44% 52%, black, transparent 77%),
+    radial-gradient(ellipse 60% 15% at 68% 67%, black, transparent 81%),
+    radial-gradient(circle at 1px 1px, black 0.9px, transparent 1.3px);
+  mask-size:
+    auto,
+    auto,
+    4px 4px;
+  mask-composite: add, intersect;
+  content: "";
+}

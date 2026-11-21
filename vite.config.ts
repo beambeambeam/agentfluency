@@ -6,6 +6,7 @@ import { defineConfig } from "vite-plus";
 import { configDefaults } from "vite-plus/test/config";
 
 const toolOutput = ["apps/web/.tanstack/**", "apps/web/.vinxi/**"];
+const vendorSource = ["apps/web/src/lib/dither/**"];
 
 export default defineConfig({
   resolve: {
@@ -27,8 +28,13 @@ export default defineConfig({
         { fn: "test", withinDescribe: "test" },
       ],
     },
-    ignorePatterns: [...core.ignorePatterns, ...toolOutput],
+    ignorePatterns: [...core.ignorePatterns, ...toolOutput, ...vendorSource],
     overrides: [
+      {
+        // The WAI-ARIA window splitter is a focusable separator.
+        files: ["apps/web/src/features/interview/workbench-split.tsx"],
+        rules: { "jsx-a11y/prefer-tag-over-role": "off" },
+      },
       {
         // Better Auth emits inline purity annotations in the generated schema.
         files: ["packages/db/src/schema/auth.ts"],
@@ -45,6 +51,7 @@ export default defineConfig({
     ignorePatterns: [
       ...ultraciteFormat.ignorePatterns,
       ...toolOutput,
+      ...vendorSource,
       ".agents/skills/**",
     ],
   },

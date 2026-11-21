@@ -1,35 +1,47 @@
-import { DashboardSquare01Icon, Home01Icon } from "@hugeicons/core-free-icons";
+import {
+  CommandLineIcon,
+  DashboardSquare01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "@tanstack/react-router";
 
+import { ThemeToggle } from "./theme-toggle";
 import UserMenu from "./user-menu";
 
 export default function Header() {
-  const links = [
-    { to: "/", label: "Home", icon: Home01Icon },
-    { to: "/dashboard", label: "Dashboard", icon: DashboardSquare01Icon },
-  ] as const;
-
   return (
-    <div>
-      <div className="bg-card flex min-h-10 flex-row items-center justify-between px-3 py-1">
-        <nav aria-label="Main" className="flex gap-1 text-sm">
-          {links.map(({ to, label, icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className="text-muted-foreground hover:bg-accent hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:text-foreground inline-flex items-center gap-1.5 rounded-md px-2 py-1.5"
-            >
-              <HugeiconsIcon icon={icon} size={15} aria-hidden="true" />
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2">
+    <header className="bg-background/95 border-b">
+      <div className="mx-auto flex h-16 max-w-[100rem] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-md text-base font-bold tracking-tight focus-visible:ring-2 sm:gap-2.5 sm:text-lg"
+        >
+          <span className="bg-foreground text-background grid size-7 place-items-center rounded-lg sm:size-8">
+            <HugeiconsIcon
+              icon={CommandLineIcon}
+              className="size-4"
+              aria-hidden="true"
+            />
+          </span>
+          AgentFluency
+        </Link>
+        <nav aria-label="Main" className="flex items-center sm:gap-3">
+          <Link
+            to="/dashboard"
+            aria-label="Dashboard"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground inline-flex size-9 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors focus-visible:ring-2 sm:w-auto sm:px-3"
+          >
+            <HugeiconsIcon
+              icon={DashboardSquare01Icon}
+              className="size-4"
+              aria-hidden="true"
+            />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Link>
+          <ThemeToggle />
           <UserMenu />
-        </div>
+        </nav>
       </div>
-      <hr />
-    </div>
+    </header>
   );
 }
