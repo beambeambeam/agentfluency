@@ -27,6 +27,8 @@ export const interviewSession = pgTable(
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
     containerId: text("container_id").unique(),
     response: text("response"),
+    evaluation: jsonb("evaluation"),
+    workspace: jsonb("workspace"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -48,6 +50,7 @@ export const interviewEvent = pgTable(
       .references(() => interviewSession.id, { onDelete: "cascade" }),
     kind: text("kind").notNull(),
     detail: text("detail"),
+    itemId: text("item_id"),
     amount: integer("amount"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

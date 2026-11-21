@@ -122,6 +122,29 @@ export const refreshSandbox = (apiKey: string, id: string) =>
     method: "GET",
   });
 
+export const uploadSandboxWorkspace = async (
+  apiKey: string,
+  id: string,
+  files: AssessmentConfig["files"],
+  archiveName: string
+) => {
+  const form = new FormData();
+  form.set(
+    "file",
+    new Blob([archiveWorkspace(files)], { type: "application/x-tar" }),
+    archiveName
+  );
+  await openAiRequest(
+    apiKey,
+    "upload",
+    `/${containerIdSchema.parse(id)}/files`,
+    {
+      method: "POST",
+      body: form,
+    }
+  );
+};
+
 export const provisionSandbox = async (
   apiKey: string,
   sessionId: string,
@@ -139,16 +162,7 @@ export const provisionSandbox = async (
     .object({ id: containerIdSchema })
     .parse(await response.json());
   try {
-    const form = new FormData();
-    form.set(
-      "file",
-      new Blob([archiveWorkspace(files)], { type: "application/x-tar" }),
-      "workspace.tar"
-    );
-    await openAiRequest(apiKey, "upload", `/${id}/files`, {
-      method: "POST",
-      body: form,
-    });
+    await uploadSandboxWorkspace(apiKey, id, files, "workspace.tar");
     return id;
   } catch (error) {
     await releaseSandbox(apiKey, id).catch(() => null);

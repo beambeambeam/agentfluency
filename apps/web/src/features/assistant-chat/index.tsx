@@ -19,6 +19,7 @@ import {
 } from "@/features/interview/assistant-picker";
 import { openAiModelSchema } from "@/features/interview/config";
 import type { Harness, Model } from "@/features/interview/config";
+import { workspaceChangedEvent } from "@/features/interview/workspace-state";
 
 import {
   MAX_CHAT_MESSAGE_LENGTH,
@@ -40,6 +41,7 @@ interface AssistantChatProps {
   mode: string;
   attachment?: { id: string; path: string };
   onClearAttachment: () => void;
+  onWorkspaceChange?: () => void;
 }
 
 export const AssistantChat = ({
@@ -51,6 +53,7 @@ export const AssistantChat = ({
   mode,
   attachment,
   onClearAttachment,
+  onWorkspaceChange,
 }: AssistantChatProps) => {
   const chatId = useId();
   const transcript = useRef<HTMLDivElement>(null);
@@ -64,6 +67,11 @@ export const AssistantChat = ({
   const [chatVersion, setChatVersion] = useState(0);
   const { messages, sendMessage, stop, isLoading, error } = useChat({
     threadId: `assistant-${chatId}-${chatVersion}`,
+    onCustomEvent: (name) => {
+      if (name === workspaceChangedEvent) {
+        onWorkspaceChange?.();
+      }
+    },
     fetcher: ({ data, messages: history, runId, threadId }, { signal }) =>
       streamAssistantChat({
         data: {
@@ -104,7 +112,9 @@ export const AssistantChat = ({
       setPrompt("");
       void sendMessage(message, {
         body: { attachmentId: attachment?.id },
-      });
+      })
+        .catch(() => null)
+        .finally(() => onWorkspaceChange?.());
     }
   };
 

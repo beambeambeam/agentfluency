@@ -16,6 +16,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 
 import type { AssessmentConfig } from "./config";
+import { FileChangeBadge } from "./workspace-diff";
+import type { FileChange } from "./workspace-state";
 
 export type WorkspaceFile = AssessmentConfig["files"][number];
 
@@ -116,10 +118,17 @@ interface TreeProps {
   folder: Folder;
   path: string;
   activePath?: string;
+  changes: Map<string, FileChange>;
   openFile: (file: WorkspaceFile) => void;
 }
 
-const FileTree = ({ folder, path, activePath, openFile }: TreeProps) => (
+const FileTree = ({
+  folder,
+  path,
+  activePath,
+  changes,
+  openFile,
+}: TreeProps) => (
   <ul className="wb-tree">
     {[...folder.folders].map(([name, child]) => {
       const childPath = `${path}${name}/`;
@@ -157,28 +166,35 @@ const FileTree = ({ folder, path, activePath, openFile }: TreeProps) => (
               folder={child}
               path={childPath}
               activePath={activePath}
+              changes={changes}
               openFile={openFile}
             />
           </details>
         </li>
       );
     })}
-    {folder.files.map((file) => (
-      <li key={file.path}>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          className="wb-tree-row wb-tree-file"
-          aria-pressed={file.path === activePath}
-          onClick={() => openFile(file)}
-          title={file.path}
-        >
-          <FileIcon file={file} />
-          <span>{fileName(file)}</span>
-        </Button>
-      </li>
-    ))}
+    {folder.files.map((file) => {
+      const change = changes.get(file.path);
+      return (
+        <li key={file.path}>
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            className="wb-tree-row wb-tree-file"
+            aria-pressed={file.path === activePath}
+            onClick={() => openFile(file)}
+            title={file.path}
+          >
+            <FileIcon file={file} />
+            <span className={change === "deleted" ? "line-through" : undefined}>
+              {fileName(file)}
+            </span>
+            {change && <FileChangeBadge change={change} compact />}
+          </Button>
+        </li>
+      );
+    })}
   </ul>
 );
 
@@ -186,11 +202,13 @@ export const FileExplorer = ({
   files,
   projectName,
   activePath,
+  changes,
   openFile,
 }: {
   files: WorkspaceFile[];
   projectName: string;
   activePath?: string;
+  changes: Map<string, FileChange>;
   openFile: (file: WorkspaceFile) => void;
 }) => (
   <details open className="wb-explorer-root">
@@ -214,6 +232,7 @@ export const FileExplorer = ({
         folder={organizeFiles(files)}
         path=""
         activePath={activePath}
+        changes={changes}
         openFile={openFile}
       />
     ) : (

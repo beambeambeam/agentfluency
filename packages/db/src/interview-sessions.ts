@@ -1,4 +1,14 @@
-import { and, asc, count, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+} from "drizzle-orm";
 
 import { writeAssessmentDraft } from "./demo-assessment";
 import type { Database } from "./index";
@@ -28,6 +38,38 @@ export const readSession = async (db: Database, id: string) => {
   return session;
 };
 
+export const updateSessionWorkspace = <Result>(
+  db: Database,
+  id: string,
+  candidateId: string,
+  update: (workspace: unknown) => { workspace: unknown; result: Result }
+) =>
+  db.transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(interviewSession)
+      .where(
+        and(
+          eq(interviewSession.id, id),
+          eq(interviewSession.candidateId, candidateId)
+        )
+      )
+      .for("update");
+    if (
+      !session?.startedAt ||
+      session.submittedAt ||
+      session.endsAt.getTime() <= Date.now()
+    ) {
+      throw new Error("The interview workspace is closed.");
+    }
+    const { workspace, result } = update(session.workspace);
+    await tx
+      .update(interviewSession)
+      .set({ workspace })
+      .where(eq(interviewSession.id, id));
+    return result;
+  });
+
 export const listOwnedSessions = (db: Database, owner: string) =>
   db
     .select()
@@ -36,13 +78,40 @@ export const listOwnedSessions = (db: Database, owner: string) =>
     .orderBy(desc(interviewSession.scheduledAt))
     .limit(50);
 
-export const listEvents = (db: Database, id: string) =>
+export const listEvents = (
+  db: Database,
+  id: string,
+  kinds: string[],
+  limit: number
+) =>
   db
     .select()
     .from(interviewEvent)
-    .where(eq(interviewEvent.sessionId, id))
+    .where(
+      and(eq(interviewEvent.sessionId, id), inArray(interviewEvent.kind, kinds))
+    )
     .orderBy(asc(interviewEvent.createdAt), asc(interviewEvent.id))
-    .limit(1000);
+    .limit(limit);
+
+export const saveEvaluation = async (
+  db: Database,
+  id: string,
+  interviewerId: string,
+  evaluation: unknown
+) => {
+  const [session] = await db
+    .update(interviewSession)
+    .set({ evaluation })
+    .where(
+      and(
+        eq(interviewSession.id, id),
+        eq(interviewSession.interviewerId, interviewerId),
+        isNotNull(interviewSession.submittedAt)
+      )
+    )
+    .returning({ id: interviewSession.id });
+  return Boolean(session);
+};
 
 export const addEvent = (
   db: Database,

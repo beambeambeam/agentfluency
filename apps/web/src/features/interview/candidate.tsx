@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
+import type { ComponentProps } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,16 @@ import { FileExplorer, getFileKind } from "./file-explorer";
 import type { WorkspaceFile } from "./file-explorer";
 import type { SessionMetric } from "./session-config";
 import {
+  getCandidateWorkspace,
   keepInterviewSandboxAlive,
   recordInterviewActivity,
   submitInterviewSession,
 } from "./sessions";
 import { SourcePreview } from "./source-preview";
 import { WorkbenchSplit } from "./workbench-split";
+import { FileChangeBadge, WorkspaceDiff } from "./workspace-diff";
+import { workspaceChanges } from "./workspace-state";
+import type { WorkspaceState } from "./workspace-state";
 
 import "./workbench.css";
 
@@ -39,11 +44,16 @@ const FilePreview = ({
   file,
   attached,
   attachFile,
+  allowAttachments,
+  change,
 }: {
   file?: WorkspaceFile;
   attached: boolean;
-  attachFile?: (file: WorkspaceFile) => void;
+  attachFile: (file: WorkspaceFile) => void;
+  allowAttachments: boolean;
+  change?: ReturnType<typeof workspaceChanges>[number];
 }) => {
+  const [showChanges, setShowChanges] = useState(false);
   if (!file) {
     return (
       <p className="wb-editor-empty">
@@ -57,7 +67,23 @@ const FilePreview = ({
         <span className="wb-path" title={file.path}>
           {file.path.split("/").join(" / ")}
         </span>
-        {attachFile && (
+        {change && (
+          <>
+            <FileChangeBadge change={change.change} />
+            {change.change !== "deleted" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-pressed={showChanges}
+                onClick={() => setShowChanges(!showChanges)}
+              >
+                {showChanges ? "View file" : "View changes"}
+              </Button>
+            )}
+          </>
+        )}
+        {allowAttachments && change?.change !== "deleted" && (
           <Button
             variant="ghost"
             size="sm"
@@ -75,7 +101,13 @@ const FilePreview = ({
           </Button>
         )}
       </div>
-      <SourcePreview file={file} />
+      {change && (showChanges || change.change === "deleted") ? (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <WorkspaceDiff change={change} />
+        </div>
+      ) : (
+        <SourcePreview file={file} />
+      )}
     </>
   );
 };
@@ -138,21 +170,64 @@ const FullscreenButton = () => {
   );
 };
 
+const WorkspaceExplorerPanel = ({
+  syncWorkspace,
+  syncError,
+  ...explorer
+}: ComponentProps<typeof FileExplorer> & {
+  syncWorkspace: () => void;
+  syncError: boolean;
+}) => (
+  <>
+    <div className="flex items-center justify-between gap-2 pr-2">
+      <h2 className="wb-panel-heading">Explorer</h2>
+      <Button type="button" size="sm" variant="ghost" onClick={syncWorkspace}>
+        Refresh files
+      </Button>
+    </div>
+    {syncError && (
+      <p className="text-destructive px-3 text-xs" role="alert">
+        Could not refresh files.
+      </p>
+    )}
+    <div className="wb-file-scroll">
+      <FileExplorer {...explorer} />
+    </div>
+  </>
+);
+
+const WorkspaceCount = ({
+  files,
+  changes,
+}: {
+  files: number;
+  changes: number;
+}) => (
+  <>
+    <span>Files: {files}</span>
+    {changes > 0 && <span aria-live="polite">{changes} changed</span>}
+  </>
+);
+
 export const CandidateWorkspace = ({
   config,
+  initialWorkspace,
   sessionId,
   endsAt,
   metrics,
   onComplete,
 }: {
   config: AssessmentConfig;
+  initialWorkspace: WorkspaceState;
   sessionId: string;
   endsAt: string;
   metrics: SessionMetric[];
   onComplete: () => void;
 }) => {
-  const [initialFile] = config.files;
+  const [initialFile] = initialWorkspace.files;
   const hasScratchpad = config.sandbox === "scratchpad";
+  const [workspace, setWorkspace] = useState(initialWorkspace);
+  const [syncError, setSyncError] = useState(false);
   const initialTab = initialFile && fileTab(initialFile.path);
   const [stepIndex, setStepIndex] = useState(0);
   const [furthestStep, setFurthestStep] = useState(0);
@@ -171,8 +246,22 @@ export const CandidateWorkspace = ({
   const [status, setStatus] = useState("");
   const step = config.steps[stepIndex];
   const lastStep = stepIndex === config.steps.length - 1;
-  const files = new Map(config.files.map((item) => [fileTab(item.path), item]));
+  const changes = workspaceChanges(config.files, workspace.files);
+  const changesByPath = new Map(changes.map((change) => [change.path, change]));
+  const explorerFiles = [
+    ...workspace.files,
+    ...changes.flatMap((change) =>
+      change.change === "deleted" && change.original ? [change.original] : []
+    ),
+  ];
+  const files = new Map(
+    explorerFiles.map((item) => [fileTab(item.path), item])
+  );
   const file = activeTab ? files.get(activeTab) : undefined;
+  const fileChange = file && changesByPath.get(file.path);
+  const activeAttachment = workspace.files.find(
+    ({ id }) => id === attachment?.id
+  );
   const showNotes = hasScratchpad && activeTab === scratchpadTab;
   const tabs = tabOrder.flatMap<WorkspaceTab>((id) => {
     if (id === scratchpadTab && hasScratchpad) {
@@ -222,6 +311,20 @@ export const CandidateWorkspace = ({
       void recordInterviewActivity({
         data: { id: sessionId, kind, itemId: selected.id },
       }).catch(() => null);
+    }
+  };
+
+  const syncWorkspace = async () => {
+    try {
+      const latest = await getCandidateWorkspace({ data: sessionId });
+      if (latest) {
+        setWorkspace((current) =>
+          latest.revision > current.revision ? latest : current
+        );
+        setSyncError(false);
+      }
+    } catch {
+      setSyncError(true);
     }
   };
 
@@ -313,15 +416,15 @@ export const CandidateWorkspace = ({
 
       <div className="wb-shell">
         <aside className="wb-sidebar" aria-label="Workspace explorer">
-          <h2 className="wb-panel-heading">Explorer</h2>
-          <div className="wb-file-scroll">
-            <FileExplorer
-              files={config.files}
-              projectName={config.workspace}
-              activePath={file?.path}
-              openFile={openFile}
-            />
-          </div>
+          <WorkspaceExplorerPanel
+            files={explorerFiles}
+            projectName={config.workspace}
+            activePath={file?.path}
+            changes={new Map(changes.map(({ path, change }) => [path, change]))}
+            openFile={openFile}
+            syncWorkspace={syncWorkspace}
+            syncError={syncError}
+          />
           <nav className="wb-step-nav" aria-label="Interview steps">
             <h2 className="wb-panel-heading">Interview steps</h2>
             <ol>
@@ -381,16 +484,17 @@ export const CandidateWorkspace = ({
               )}
               {!showNotes && (
                 <FilePreview
+                  key={file?.path}
                   file={file}
-                  attached={Boolean(file && attachment?.path === file.path)}
-                  attachFile={
-                    config.allowFileAttachments
-                      ? (selected) => {
-                          setAttachment(selected);
-                          recordFile(selected, "attachment");
-                        }
-                      : undefined
-                  }
+                  change={fileChange}
+                  attached={Boolean(
+                    file && activeAttachment?.path === file.path
+                  )}
+                  allowAttachments={config.allowFileAttachments}
+                  attachFile={(selected) => {
+                    setAttachment(selected);
+                    recordFile(selected, "attachment");
+                  }}
                 />
               )}
 
@@ -473,14 +577,18 @@ export const CandidateWorkspace = ({
               allowModelSelection={config.allowModelSelection}
               mode="live"
               sessionId={sessionId}
-              attachment={attachment}
+              attachment={activeAttachment}
               onClearAttachment={() => setAttachment(undefined)}
+              onWorkspaceChange={syncWorkspace}
             />
           }
         />
 
         <footer className="wb-statusbar">
-          <span>Files: {config.files.length}</span>
+          <WorkspaceCount
+            files={workspace.files.length}
+            changes={changes.length}
+          />
           <EditorStatus file={file} showNotes={showNotes} />
         </footer>
       </div>
