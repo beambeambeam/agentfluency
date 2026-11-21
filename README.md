@@ -73,7 +73,7 @@ This project uses PostgreSQL with Drizzle ORM.
 3. Apply the schema to your database:
 
 ```bash
-bun run db:push
+bun run db:migrate
 ```
 
 Then, run the development server:
@@ -106,7 +106,7 @@ Vite+ runs its bundled Oxlint and Oxfmt using the Ultracite presets in `vite.con
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, lint, types, the Worker build, and tests on pull requests, merge queues, and pushes to `main`. Verification needs no production secrets.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks database migrations, formatting, lint, types, the Worker build, and tests on pull requests, merge queues, and pushes to `main`. Verification needs no production secrets.
 
 ## Production Deployment
 
@@ -116,7 +116,9 @@ The GitHub Actions `production` environment allows deployments from `main`. `cf 
 
 Set the optional `OPENAI_API_KEY` secret in that environment to enable the dashboard assistant on the next deploy.
 
-Use a PostgreSQL endpoint reachable from Cloudflare Workers. Apply the schema to a new production database before deploying. Run `bun run db:push` from `packages/db` with the production `DATABASE_URL` set in the command environment.
+Use a PostgreSQL endpoint reachable from both GitHub Actions and Cloudflare Workers. The production job applies committed Drizzle migrations using `DATABASE_URL` before publishing the Worker. A migration failure stops the deployment. Pull requests test the migrations against a disposable PostgreSQL instance.
+
+After editing the database schema, run `bun run db:generate --name <change>` from `packages/db` and commit the generated SQL and snapshot. Keep schema changes compatible with the currently deployed Worker because migrations run before the new Worker is published.
 
 ## Testing
 
@@ -143,7 +145,7 @@ agentfluency/
 - `bun run dev:web`: Start only the web application
 - `bun run check-types`: Check TypeScript types across all apps
 - `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
+- `bun run db:generate`: Generate Drizzle migration SQL and snapshots
 - `bun run db:migrate`: Run database migrations
 - `bun run db:studio`: Open database studio UI
 - `bun run check`: Run Vite+ format/lint checks and workspace TypeScript checks
