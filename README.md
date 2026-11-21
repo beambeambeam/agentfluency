@@ -65,7 +65,15 @@ Vite+ runs its bundled Oxlint and Oxfmt using the Ultracite presets in `vite.con
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, lint, types, the web build, and tests on pull requests, merge queues, and pushes to `main`. The build uses disposable Varlock values and needs no repository secrets.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, lint, types, the Worker build, and tests on pull requests, merge queues, and pushes to `main`. Verification needs no production secrets.
+
+## Production Deployment
+
+Successful pushes to `main` deploy the verified build to [agentfluency.thisisbeam.fyi](https://agentfluency.thisisbeam.fyi) with `cf deploy`. The [Worker configuration](apps/web/cloudflare.config.ts) sets the custom domain and Better Auth origin.
+
+The GitHub Actions `production` environment allows deployments from `main`. It supplies the `CLOUDFLARE_ACCOUNT_ID` variable and the `CLOUDFLARE_API_TOKEN`, `BETTER_AUTH_SECRET`, and `DATABASE_URL` secrets. The deploy step passes the auth secret and database URL as Worker runtime secrets.
+
+Use a PostgreSQL endpoint reachable from Cloudflare Workers. Apply the schema to a new production database before deploying. Run `bun run db:push` from `packages/db` with the production `DATABASE_URL` set in the command environment.
 
 ## Testing
 
@@ -104,4 +112,4 @@ agentfluency/
 
 ## Better Auth Schema Generation
 
-After changing auth plugins or schema options, run `bun run auth:generate` from the project root. The script runs the Better Auth CLI through `varlock run` from the owning app directory, loading the auth instance from `src/services.ts`. Review the schema changes, then use your ORM's migration workflow to apply them.
+After changing auth plugins or schema options, run `bun run auth:generate` from the project root. The script runs the Better Auth CLI through `varlock run` from the owning app directory, loading the auth instance from `src/auth.config.ts`. Review the schema changes, then use your ORM's migration workflow to apply them.

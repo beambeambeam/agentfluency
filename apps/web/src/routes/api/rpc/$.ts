@@ -22,9 +22,10 @@ const apiHandler = new OpenAPIHandler(appRouter, {
 });
 
 const handle = async ({ request }: { request: Request }) => {
+  const context = await createContext({ req: request });
   const rpcResult = await rpcHandler.handle(request, {
     prefix: "/api/rpc",
-    context: await createContext({ req: request }),
+    context,
   });
   if (rpcResult.response) {
     return rpcResult.response;
@@ -32,7 +33,7 @@ const handle = async ({ request }: { request: Request }) => {
 
   const apiResult = await apiHandler.handle(request, {
     prefix: "/api/rpc/api-reference",
-    context: await createContext({ req: request }),
+    context,
   });
   if (apiResult.response) {
     return apiResult.response;
