@@ -18,7 +18,11 @@ import { createServices } from "@/services";
 
 import { assessmentSchema, submissionSchema } from "./config";
 import { createInvite, verifyInvite } from "./invite.server";
-import { provisionSandbox, releaseSandbox } from "./sandbox.server";
+import {
+  provisionSandbox,
+  refreshSandbox,
+  releaseSandbox,
+} from "./sandbox.server";
 import {
   activeCandidateSession,
   canJoinSession,
@@ -207,12 +211,7 @@ export const beginInterviewSession = createServerFn({ method: "POST" })
           throw new Error("This interview is outside its scheduled window.");
         }
         const config = sessionConfigSchema.parse(session.config);
-        allocated = await provisionSandbox(
-          apiKey,
-          id,
-          config.assessment.files,
-          Math.ceil((session.endsAt.getTime() - Date.now()) / 60_000)
-        );
+        allocated = await provisionSandbox(apiKey, id, config.assessment.files);
         if (sessionStatus(session) !== "ready") {
           throw new Error("The interview window has ended.");
         }
@@ -223,6 +222,24 @@ export const beginInterviewSession = createServerFn({ method: "POST" })
         await releaseSandbox(apiKey, allocated).catch(() => null);
       }
       throw error;
+    }
+  });
+
+export const keepInterviewSandboxAlive = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(sessionIdSchema)
+  .handler(async ({ context, data }) => {
+    const candidate = context.session?.user;
+    if (candidate?.role !== "candidate") {
+      return;
+    }
+    const apiKey = getServerEnv().OPENAI_API_KEY;
+    if (!apiKey) {
+      return;
+    }
+    const active = await activeCandidateSession(data, candidate.id);
+    if (active?.config.useCodeInterpreter) {
+      await refreshSandbox(apiKey, active.containerId);
     }
   });
 
