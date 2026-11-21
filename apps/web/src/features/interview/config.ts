@@ -20,7 +20,7 @@ export const models = {
 
 export const sandboxes = {
   "read-only": "Read-only workspace",
-  scratchpad: "Workspace with scratchpad",
+  scratchpad: "Editable workspace with scratchpad",
 } as const;
 
 export const harnessSchema = z.enum([
@@ -44,7 +44,7 @@ export const modelSchema = z.enum([
 ]);
 export const submissionSchema = z.string().trim().min(1).max(12_000);
 
-const filePath = z
+export const filePathSchema = z
   .string()
   .trim()
   .max(160)
@@ -52,6 +52,12 @@ const filePath = z
     /^[\w-][\w. -]*(?:\/[\w-][\w. -]*)*$/u,
     "Use a relative path like data/sales.csv."
   );
+
+export const workspaceFileSchema = z.object({
+  id: z.string().min(1).max(60),
+  path: filePathSchema,
+  content: z.string().max(12_000),
+});
 
 export const assessmentSchema = z
   .object({
@@ -74,15 +80,7 @@ export const assessmentSchema = z
       )
       .min(1)
       .max(8),
-    files: z
-      .array(
-        z.object({
-          id: z.string().min(1).max(60),
-          path: filePath,
-          content: z.string().max(12_000),
-        })
-      )
-      .max(18),
+    files: z.array(workspaceFileSchema).max(18),
   })
   .superRefine(({ files }, ctx) => {
     for (let index = 0; index < files.length; index += 1) {

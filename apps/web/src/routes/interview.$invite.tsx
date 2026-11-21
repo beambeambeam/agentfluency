@@ -41,11 +41,12 @@ const CandidateInterview = () => {
     return () => window.clearTimeout(timer);
   }, [session.status, session.scheduledAt]);
 
-  if (session.status === "active" && session.assessment) {
+  if (session.status === "active" && session.assessment && session.workspace) {
     return (
       <CandidateWorkspace
         key={session.id}
         config={session.assessment}
+        initialWorkspace={session.workspace}
         sessionId={session.id}
         endsAt={session.endsAt}
         metrics={session.metrics}

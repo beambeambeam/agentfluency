@@ -1,0 +1,68 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "9d543cee-d573-4d22-a0d4-357ade63f8fa",
+  "prevIds": ["5cf11517-050e-4b6b-a243-333a957ec448"],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "interview_event", "item_id"],
+      "writes": [
+        "s|col|public.interview_event.item_id",
+        "n|col|public.interview_event.item_id",
+        "e|col|public.interview_event.item_id"
+      ],
+      "reads": ["n|tbl|public.interview_event", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "interview_session",
+        "evaluation"
+      ],
+      "writes": [
+        "s|col|public.interview_session.evaluation",
+        "n|col|public.interview_session.evaluation",
+        "e|col|public.interview_session.evaluation"
+      ],
+      "reads": ["n|tbl|public.interview_session", "n|sch|public"]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "interview_event",
+        "name": "item_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "interview_session",
+        "name": "evaluation",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

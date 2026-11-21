@@ -118,6 +118,13 @@ export const SessionOverview = ({
           <span className="bg-muted rounded-md px-2 py-1 text-xs capitalize">
             {session.status}
           </span>
+          {session.status === "submitted" && (
+            <span className="text-muted-foreground px-2 py-1 text-xs tabular-nums">
+              {session.score === null
+                ? "Awaiting score"
+                : `${session.score}% AI fluency`}
+            </span>
+          )}
           <CopyInvite invite={session.invite} />
           <Link
             className={buttonVariants({ size: "sm", variant: "outline" })}

@@ -1,0 +1,37 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "6b311a2b-aeca-49fe-9a67-012eaf98f6e8",
+  "prevIds": ["9d543cee-d573-4d22-a0d4-357ade63f8fa"],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "interview_session", "workspace"],
+      "writes": [
+        "s|col|public.interview_session.workspace",
+        "n|col|public.interview_session.workspace",
+        "e|col|public.interview_session.workspace"
+      ],
+      "reads": ["n|tbl|public.interview_session", "n|sch|public"]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "interview_session",
+        "name": "workspace",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

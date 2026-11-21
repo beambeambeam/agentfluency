@@ -5,6 +5,7 @@ import {
   listEvents,
   listOwnedSessions,
   readSession,
+  saveEvaluation,
   startSession,
   submitSession,
 } from "@agentfluency/db/interview-sessions";
@@ -17,6 +18,11 @@ import { authMiddleware } from "@/middleware/auth";
 import { createServices } from "@/services";
 
 import { assessmentSchema, submissionSchema } from "./config";
+import {
+  evaluationInputSchema,
+  evaluationPercent,
+  evaluationSchema,
+} from "./evaluation";
 import { createInvite, verifyInvite } from "./invite.server";
 import {
   provisionSandbox,
@@ -34,6 +40,10 @@ import {
   sessionConfigSchema,
   sessionIdSchema,
 } from "./session-config";
+import { reportEventKinds, summarizeSession } from "./session-metrics";
+import { readWorkspace, workspaceChanges } from "./workspace-state";
+
+const reportEventLimit = 1000;
 
 const privateResponse = () => {
   setResponseHeader("Cache-Control", "private, no-store");
@@ -99,15 +109,19 @@ export const getInterviewerSessions = createServerFn({ method: "GET" })
     const { db } = createServices();
     const records = await listOwnedSessions(db, profile.id);
     return Promise.all(
-      records.map(async (session) => ({
-        id: session.id,
-        invite: await createInvite(session.id),
-        title: sessionConfigSchema.parse(session.config).assessment.title,
-        candidateEmail: session.candidateEmail,
-        scheduledAt: session.scheduledAt.toISOString(),
-        endsAt: session.endsAt.toISOString(),
-        status: sessionStatus(session),
-      }))
+      records.map(async (session) => {
+        const evaluation = evaluationSchema.safeParse(session.evaluation).data;
+        return {
+          id: session.id,
+          invite: await createInvite(session.id),
+          title: sessionConfigSchema.parse(session.config).assessment.title,
+          candidateEmail: session.candidateEmail,
+          scheduledAt: session.scheduledAt.toISOString(),
+          endsAt: session.endsAt.toISOString(),
+          status: sessionStatus(session),
+          score: evaluation ? evaluationPercent(evaluation.ratings) : null,
+        };
+      })
     );
   });
 
@@ -128,21 +142,45 @@ export const getSessionReport = createServerFn({ method: "GET" })
     const status = sessionStatus(record);
     const config = sessionConfigSchema.parse(record.config);
     const finished = status === "submitted" || status === "expired";
-    const events = finished ? await listEvents(db, data) : [];
-    const showPromptCount =
-      config.metrics.includes("prompts") ||
-      config.metrics.includes("transcript");
+    const kinds = reportEventKinds(config.metrics);
+    const events =
+      finished && kinds.length
+        ? await listEvents(db, data, kinds, reportEventLimit + 1)
+        : [];
+    const recorded = events.slice(0, reportEventLimit);
+    const endedAt = record.submittedAt ?? record.endsAt;
+    const transcript = config.metrics.includes("transcript");
     return {
+      id: record.id,
       status,
       title: config.assessment.title,
       email: record.candidateEmail,
       scheduledAt: record.scheduledAt.toISOString(),
-      startedAt: record.startedAt?.toISOString(),
-      endedAt: (record.submittedAt ?? record.endsAt).toISOString(),
       response: finished ? record.response : null,
-      metrics: config.metrics,
-      events: events
-        .filter(({ kind }) => kind !== "prompt" || showPromptCount)
+      evaluation:
+        status === "submitted"
+          ? (evaluationSchema.safeParse(record.evaluation).data ?? null)
+          : null,
+      summary: finished
+        ? summarizeSession({
+            events: recorded,
+            metrics: config.metrics,
+            steps: config.assessment.steps,
+            providedFiles: config.assessment.files.map(({ path }) => path),
+            startedAt: record.startedAt,
+            endedAt,
+            deadline: record.endsAt,
+          })
+        : null,
+      eventLimitReached: events.length > reportEventLimit,
+      fileChanges: finished
+        ? workspaceChanges(
+            config.assessment.files,
+            readWorkspace(record.workspace, config.assessment.files).files
+          )
+        : [],
+      events: recorded
+        .filter(({ kind }) => kind !== "prompt" || transcript)
         .map(({ id, kind, detail, createdAt }) => ({
           id,
           kind,
@@ -150,6 +188,24 @@ export const getSessionReport = createServerFn({ method: "GET" })
           time: createdAt.toISOString(),
         })),
     };
+  });
+
+export const saveSessionEvaluation = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(evaluationInputSchema.extend({ id: sessionIdSchema }))
+  .handler(async ({ context, data }) => {
+    privateResponse();
+    const profile = context.session?.user;
+    if (profile?.role !== "interviewer") {
+      throw new Error("Interviewer access is required.");
+    }
+    const { db } = createServices();
+    const { id, ...input } = data;
+    const evaluation = { ...input, updatedAt: new Date().toISOString() };
+    if (!(await saveEvaluation(db, id, profile.id, evaluation))) {
+      throw new Error("A submitted interview you own is required.");
+    }
+    return evaluation;
   });
 
 export const getCandidateInvite = createServerFn({ method: "GET" })
@@ -177,7 +233,26 @@ export const getCandidateInvite = createServerFn({ method: "GET" })
       endsAt: session.endsAt.toISOString(),
       metrics: config.metrics,
       assessment: status === "active" ? config.assessment : undefined,
+      workspace:
+        status === "active"
+          ? readWorkspace(session.workspace, config.assessment.files)
+          : undefined,
     };
+  });
+
+export const getCandidateWorkspace = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(sessionIdSchema)
+  .handler(async ({ context, data }) => {
+    privateResponse();
+    const profile = context.session?.user;
+    if (profile?.role !== "candidate") {
+      return null;
+    }
+    const active = await activeCandidateSession(data, profile.id);
+    return active
+      ? readWorkspace(active.session.workspace, active.config.assessment.files)
+      : null;
   });
 
 export const beginInterviewSession = createServerFn({ method: "POST" })
@@ -291,8 +366,14 @@ export const recordInterviewActivity = createServerFn({ method: "POST" })
         ? metrics.includes("steps") &&
           assessment.steps.find((step) => step.id === data.itemId)?.title
         : metrics.includes("files") &&
-          assessment.files.find((file) => file.id === data.itemId)?.path;
+          readWorkspace(active.session.workspace, assessment.files).files.find(
+            (file) => file.id === data.itemId
+          )?.path;
     if (detail) {
-      await addEvent(active.db, data.id, { kind: data.kind, detail });
+      await addEvent(active.db, data.id, {
+        kind: data.kind,
+        detail,
+        itemId: data.itemId,
+      });
     }
   });
