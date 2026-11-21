@@ -110,7 +110,7 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, li
 
 Successful pushes to `main` deploy the verified build to [agentfluency.thisisbeam.fyi](https://agentfluency.thisisbeam.fyi) with `cf deploy`. The [Worker configuration](apps/web/cloudflare.config.ts) sets the custom domain and Better Auth origin.
 
-The GitHub Actions `production` environment allows deployments from `main`. It supplies the `CLOUDFLARE_ACCOUNT_ID` variable and the `CLOUDFLARE_API_TOKEN`, `BETTER_AUTH_SECRET`, and `DATABASE_URL` secrets. The deploy step passes the auth secret and database URL as Worker runtime secrets.
+The GitHub Actions `production` environment allows deployments from `main`. `cf deploy` uses the `CLOUDFLARE_ACCOUNT_ID` variable and `CLOUDFLARE_API_TOKEN` secret. The deploy step passes `BETTER_AUTH_SECRET`, `DATABASE_URL`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` as Worker runtime secrets.
 
 Use a PostgreSQL endpoint reachable from Cloudflare Workers. Apply the schema to a new production database before deploying. Run `bun run db:push` from `packages/db` with the production `DATABASE_URL` set in the command environment.
 
