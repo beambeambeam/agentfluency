@@ -61,9 +61,11 @@ Run standalone Node/Bun tools that use Varlock from the owning app directory so 
 
 Vite+ runs its bundled Oxlint and Oxfmt using the Ultracite presets in `vite.config.ts`.
 
-- Optional native Vite+ hooks: `bun run hooks:setup`
+- Run `bun run hooks:setup` after installing dependencies to enable the Vite+ pre-commit hook. It runs `bun run staged` against staged files.
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
+
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) checks formatting, lint, types, the web build, and tests on pull requests, merge queues, and pushes to `main`. The build uses disposable Varlock values and needs no repository secrets.
 
 ## Testing
 
@@ -98,7 +100,7 @@ agentfluency/
 - `bun run lint`: Run Vite+ lint checks
 - `bun run format`: Run Vite+ formatting
 - `bun run staged`: Run Vite+ checks against staged files
-- `bun run hooks:setup`: Install Vite+ native Git hooks with `vp config`
+- `bun run hooks:setup`: Enable the Vite+ Git hook dispatcher
 
 ## Better Auth Schema Generation
 

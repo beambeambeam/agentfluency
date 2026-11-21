@@ -37,7 +37,7 @@
     "lint": "vp lint",
     "format": "vp fmt",
     "staged": "vp staged",
-    "hooks:setup": "vp config",
+    "hooks:setup": "vp hooks enable",
     "dev:web": "vp run --filter web dev",
     "db:push": "vp run --filter @agentfluency/db db:push",
     "db:studio": "vp run --filter @agentfluency/db db:studio",
