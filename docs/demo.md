@@ -4,7 +4,7 @@
 
 1. Run `bun install` and `bun run infra:start` from the repository root. An existing local PostgreSQL server also works.
 2. Set `BETTER_AUTH_URL=http://localhost:3001`, a generated `BETTER_AUTH_SECRET` of at least 32 characters, and a local `DATABASE_URL` in `apps/web/.env`. The [Docker Compose file](../packages/docker/docker-compose.yml) defines the disposable local database name, port, and credentials. The [database env schema](../packages/db/.env.schema) imports the web database settings. Use an ignored `packages/db/.env` override if required by your local setup.
-3. Run `bun run db:push` against that local database. Run `bun run dev:web` and open [the sign-in page](http://localhost:3001/login).
+3. Run `bun run db:migrate` against that local database. Run `bun run dev:web` and open [the sign-in page](http://localhost:3001/login).
 
 An OpenAI key is optional for this walkthrough. Leave it unset to get repeatable, labeled scripted replies. Set `OPENAI_API_KEY` in the web env and restart to exercise a live OpenAI model.
 
