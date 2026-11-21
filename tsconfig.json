@@ -1,0 +1,3 @@
+{
+  "extends": "@agentfluency/config/tsconfig.base.json"
+}
