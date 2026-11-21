@@ -1,8 +1,8 @@
 # AgentFluency
 
-AgentFluency helps interviewers assess how candidates use AI to complete realistic work across roles. The demo follows a business analyst investigating a revenue decline and lets the interviewer review the candidate's recommendation.
+In AgentFluency, candidates use AI to complete realistic work and verify the AI's output. Interviewers assess the candidates' work and the evidence behind it. The planned prototype covers two job roles. Customer Support comes first, with a missing-payout ticket. Software Engineering comes second, with an export bug that drops valid zeros.
 
-Read the [architecture and demo handoff](docs/architecture.md) for the product boundaries and code map. Follow the [demo walkthrough](docs/demo.md) to try both roles locally.
+The current demo uses a business analyst's revenue-decline investigation to exercise the shared workbench, files, assistant chat, and submission flow. The two planned simulations and their reviewer reports are still to build. See the [prototype scope and completion criteria](docs/architecture.md#planned-two-role-prototype). To try the current demo locally as both an interviewer and a candidate, follow the [demo walkthrough](docs/demo.md).
 
 ## Features
 

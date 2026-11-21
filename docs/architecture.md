@@ -4,6 +4,32 @@
 
 AI fluency is a distinct hiring competency alongside domain knowledge, technical ability, and communication. An interviewer sets a work sample and its AI environment. A candidate completes the work, checks the assistant's output against the available evidence, and submits a deliverable. The platform is designed for work across roles, including business analysis, customer support, marketing, and engineering.
 
+## Planned two-role prototype
+
+Build and verify Customer Support end to end, from assignment through interviewer review, before starting Software Engineering.
+
+Both job roles will reuse the demo's assessment configuration, candidate workbench, assistant, and submission flow. The interviewer will assign a role-specific scenario and send an invite. The candidate will complete a short AI-literacy section, then enter a timed simulation. A reviewer report will show the submitted work, the assistant's contribution, and how the candidate verified its output. The interviewer will assess skill using that evidence. Integrity signals will appear separately for human review and will have no effect on the skill score.
+
+### 1. Customer Support
+
+The candidate will handle a missing-payout ticket in a workspace with a source viewer, reply editor, and AI assistant. The exercise will use synthetic case records, give the assistant one policy lookup scoped to the task, and simulate all case actions. The candidate will check the applicable policy and the payout event log, draft a reply, and decide whether to escalate the case.
+
+The interviewer will see the sources the candidate used, their edits to the draft, the final customer reply, and the disposition of the ticket, including the escalation decision.
+
+### 2. Software Engineering
+
+The candidate will work in a browser code editor with one starter repository containing an export bug that drops valid zero values. They will preview the assistant's proposed diff, edit the patch, and use **Run tests** to check the fix. An isolated runner will execute the tests against the exact saved revision so the reviewer can identify which changes each result covers.
+
+The interviewer will see the proposed patch, the candidate's edits, the test results for the saved revision, and the final diff.
+
+### Completion and roadmap
+
+The prototype is complete when an interviewer can assign either job role, a candidate can finish the assigned scenario, and the interviewer can inspect how the candidate verified the AI output in each scenario. For Support, the interviewer should be able to trace the reply and escalation decision to the policy and event log. For Engineering, they should be able to trace the final fix to the candidate's edits and the results for the tested revision.
+
+Data Analysis is the next planned workspace after this prototype. Finance and other roles are future candidates.
+
+## Current demo
+
 The hackathon demo uses a business analyst scenario. Orders remain at 1,000 while revenue falls from $100,000 to $80,000. The default scripted assistant initially suggests that order volume fell. Asking it to verify the result exposes the difference between order volume and average order value. The evaluator can read the candidate's recommendation and see whether it cites the supplied data.
 
 ## Request and data flow
