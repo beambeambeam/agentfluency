@@ -59,8 +59,13 @@ export default function SignUpForm({
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 w-full duration-250">
+      <h1 className="text-4xl font-semibold tracking-[-0.05em]">
+        Create an account.
+      </h1>
+      <p className="text-muted-foreground mt-2 mb-7 text-sm">
+        Get access to your AgentFluency workspace.
+      </p>
 
       <form
         onSubmit={(e) => {
@@ -68,7 +73,7 @@ export default function SignUpForm({
           e.stopPropagation();
           form.handleSubmit();
         }}
-        className="space-y-4"
+        className="space-y-5"
       >
         <div>
           <form.Field name="name">
@@ -78,12 +83,19 @@ export default function SignUpForm({
                 <Input
                   id={field.name}
                   name={field.name}
+                  autoComplete="name"
+                  className="h-11"
+                  aria-invalid={field.state.meta.errors.length > 0}
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p
+                    key={error?.message}
+                    className="text-destructive text-sm"
+                    role="alert"
+                  >
                     {error?.message}
                   </p>
                 ))}
@@ -101,12 +113,20 @@ export default function SignUpForm({
                   id={field.name}
                   name={field.name}
                   type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  className="h-11"
+                  aria-invalid={field.state.meta.errors.length > 0}
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p
+                    key={error?.message}
+                    className="text-destructive text-sm"
+                    role="alert"
+                  >
                     {error?.message}
                   </p>
                 ))}
@@ -124,12 +144,19 @@ export default function SignUpForm({
                   id={field.name}
                   name={field.name}
                   type="password"
+                  autoComplete="new-password"
+                  className="h-11"
+                  aria-invalid={field.state.meta.errors.length > 0}
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p
+                    key={error?.message}
+                    className="text-destructive text-sm"
+                    role="alert"
+                  >
                     {error?.message}
                   </p>
                 ))}
@@ -147,7 +174,7 @@ export default function SignUpForm({
           {({ canSubmit, isSubmitting }) => (
             <Button
               type="submit"
-              className="w-full"
+              className="h-11 w-full"
               disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting ? "Submitting..." : "Sign Up"}
@@ -156,12 +183,8 @@ export default function SignUpForm({
         </form.Subscribe>
       </form>
 
-      <div className="mt-4 text-center">
-        <Button
-          variant="link"
-          onClick={onSwitchToSignIn}
-          className="text-indigo-600 hover:text-indigo-800"
-        >
+      <div className="mt-5 border-t pt-4 text-center">
+        <Button type="button" variant="link" onClick={onSwitchToSignIn}>
           Already have an account? Sign In
         </Button>
       </div>

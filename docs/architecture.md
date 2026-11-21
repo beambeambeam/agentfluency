@@ -19,6 +19,8 @@ The hackathon demo uses a business analyst scenario. Orders remain at 1,000 whil
 
 The shared `packages/api` workspace still provides the starter oRPC health check and private endpoint. Interview reads and writes currently use TanStack Start server functions. The S3 package and local SeaweedFS environment are available for future assets. Demo files are stored as text in assessment configuration.
 
+The landing and sign-in artwork uses the MIT-licensed [DitherCN shader runtime](https://github.com/opencoredev/dithercn) vendored in `apps/web/src/lib/dither` with an ES2022 compatibility adjustment. The candidate workbench keeps tab order and the editor split in page state. Narrow layouts stack the assistant below the editor.
+
 ## Runtime boundaries
 
 - **Harnesses** are local prompt and interaction presets. The catalog displays Codex, Claude Code, Cursor Agent, Grok Build, and Gemini CLI. Stored preset IDs retain compatibility with earlier demo configuration. Vendor agents and their tool runtimes are future integrations.

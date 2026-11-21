@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,16 +23,21 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Link to="/login">
-        <Button variant="outline">Sign In</Button>
+      <Link
+        to="/login"
+        className={buttonVariants({ variant: "outline", size: "lg" })}
+      >
+        Sign in
       </Link>
     );
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" />}>
-        {session.user.name}
+      <DropdownMenuTrigger render={<Button variant="outline" size="lg" />}>
+        <span className="max-w-14 truncate sm:max-w-44">
+          {session.user.name}
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuGroup>
