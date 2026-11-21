@@ -36,6 +36,7 @@ const messageText = (message: UIMessage) =>
     .join("");
 
 interface AssistantChatProps {
+  inviteId: string;
   initialHarness: Harness;
   initialModel: Model;
   allowHarnessSelection: boolean;
@@ -46,6 +47,7 @@ interface AssistantChatProps {
 }
 
 export const AssistantChat = ({
+  inviteId,
   initialHarness,
   initialModel,
   allowHarnessSelection,
@@ -69,6 +71,7 @@ export const AssistantChat = ({
     fetcher: ({ data, messages: history, runId, threadId }, { signal }) =>
       streamAssistantChat({
         data: {
+          inviteId,
           harness: harnessSchema.parse(data?.harness ?? initialHarness),
           model: modelSchema.parse(data?.model ?? initialModel),
           attachmentId:

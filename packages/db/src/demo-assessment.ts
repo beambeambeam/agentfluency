@@ -6,18 +6,25 @@ import { user } from "./schema/auth";
 
 const demoAssessmentId = "revenue-review";
 
-export const readDemoAssessment = async (db: Database) => {
+export const readDemoAssessment = async (
+  db: Database,
+  id = demoAssessmentId
+) => {
   const [record] = await db
     .select({ config: assessment.config })
     .from(assessment)
-    .where(eq(assessment.id, demoAssessmentId));
+    .where(eq(assessment.id, id));
   return record?.config;
 };
 
-export const writeDemoAssessment = async (db: Database, config: unknown) => {
+export const writeAssessmentDraft = async (
+  db: Pick<Database, "insert">,
+  interviewerId: string,
+  config: unknown
+) => {
   await db
     .insert(assessment)
-    .values({ id: demoAssessmentId, config })
+    .values({ id: `draft:${interviewerId}`, config })
     .onConflictDoUpdate({ target: assessment.id, set: { config } });
 };
 
@@ -41,17 +48,3 @@ export const listDemoSubmissions = (db: Database) =>
     .innerJoin(user, eq(user.id, assessmentSubmission.candidateId))
     .orderBy(desc(assessmentSubmission.submittedAt))
     .limit(20);
-
-export const saveDemoSubmission = async (
-  db: Database,
-  candidateId: string,
-  response: string
-) => {
-  await db
-    .insert(assessmentSubmission)
-    .values({ candidateId, response })
-    .onConflictDoUpdate({
-      target: assessmentSubmission.candidateId,
-      set: { response, submittedAt: new Date() },
-    });
-};
