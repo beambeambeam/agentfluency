@@ -14,12 +14,19 @@ export default defineConfig({
   test: {
     include: [
       ...configDefaults.include,
-      "apps/web/src/features/**/test.{ts,tsx}",
+      "apps/web/src/features/**/__tests__/index.{ts,tsx}",
     ],
   },
   lint: {
     env: core.env,
     extends: [core, react, tanstack],
+    plugins: [...core.plugins, "vitest"],
+    rules: {
+      "vitest/consistent-test-it": [
+        "error",
+        { fn: "test", withinDescribe: "test" },
+      ],
+    },
     ignorePatterns: [...core.ignorePatterns, ...toolOutput],
     overrides: [
       {
