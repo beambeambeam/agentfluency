@@ -3,6 +3,12 @@
 - After changing code, run `bun run lint --fix`, then `bun run format` from the repository root.
 - Before finishing, run `bun run lint --deny-warnings --format=agent`. Resolve all reported errors and warnings.
 
+## Web feature layout
+
+- Put feature-specific UI and logic in `apps/web/src/features/`. Keep shared UI in `src/components/` and route wiring in `src/routes/`.
+- Start with one kebab-case file, such as `sign-in.tsx`. When it needs child files or tests, move the entry to `sign-in/index.tsx` and keep files such as `test.tsx` beside it.
+- Import a feature through its entry, such as `@/features/sign-in`.
+
 ## Agent skills
 
 ### Engineering workflow

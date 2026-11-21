@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import SignInForm from "@/components/sign-in-form";
-import SignUpForm from "@/components/sign-up-form";
+import SignInForm from "@/features/sign-in";
+import SignUpForm from "@/features/sign-up";
 
 const Login = () => {
   const [showSignIn, setShowSignIn] = useState(false);
