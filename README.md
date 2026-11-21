@@ -1,6 +1,8 @@
-# agentfluency
+# AgentFluency
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Self, ORPC, and more.
+AgentFluency helps interviewers assess how candidates use AI to complete realistic work across roles. The demo follows a business analyst investigating a revenue decline and lets the interviewer review the candidate's recommendation.
+
+Read the [architecture and demo handoff](docs/architecture.md) for the product boundaries and code map. Follow the [demo walkthrough](docs/demo.md) to try both roles locally.
 
 ## Features
 
@@ -16,7 +18,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 
 ## Getting Started
 
-First, install the dependencies:
+Install dependencies using the Bun version in [package.json](package.json). CI uses Node.js 26 for the Vite+ tooling.
 
 ```bash
 bun install
@@ -66,7 +68,7 @@ Download URLs expire after five minutes by default. Anyone with the URL can use 
 This project uses PostgreSQL with Drizzle ORM.
 
 1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
+2. Set `DATABASE_URL` in `apps/web/.env` and provide the Better Auth origin and secret as described in the [demo walkthrough](docs/demo.md).
 
 3. Apply the schema to your database:
 
@@ -81,17 +83,6 @@ bun run dev
 ```
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
-
-### Try authentication and the AI assistant
-
-Open the sign-in page and use **Sign Up** to create an interviewer account.
-After signing in, the dashboard shows the AI assistant. Add an
-`OPENAI_API_KEY` to `apps/web/.env` and restart the app to enable streaming
-replies. The server selects the model and keeps the API key private. The chat
-history lives in the open dashboard and is cleared by **New chat** or a reload.
-
-Use the account menu to sign out. Visiting the dashboard while signed out
-redirects to sign-in.
 
 ## UI Customization
 

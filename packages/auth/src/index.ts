@@ -17,6 +17,15 @@ export const createAuth = (env: AuthConfig, database: Database) =>
     }),
     trustedOrigins: [env.BETTER_AUTH_URL],
     emailAndPassword: { enabled: true },
+    user: {
+      additionalFields: {
+        role: {
+          type: ["candidate", "interviewer"],
+          defaultValue: "candidate",
+          input: false,
+        },
+      },
+    },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     plugins: [tanstackStartCookies()],
